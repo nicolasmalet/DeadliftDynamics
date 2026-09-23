@@ -1,56 +1,101 @@
-# Simulation Biomécanique & Optimisation d'un Soulevé de Terre (Deadlift)
+# DeadliftDynamics
 
+**A from-scratch study of constrained feedback control for a nonlinear, four-link planar system.**
 
-**Ce projet est une simulation physique "from scratch" modélisant la dynamique d'un corps humain soulevant une charge de 175 kg.**
+<p align="center">
+  <img src="assets/deadlift.gif" alt="Animation of the controlled four-link simulation" width="360">
+</p>
 
-Il ne s'agit d'une application d'ingénierie combinant **mécanique newtonienne**, **résolution numérique matricielle** et **optimisation algorithmique** pour simuler la physique du mouvement et trouver la meilleure forme de soulevé de terre.
+The deadlift provides the geometry; the project is primarily numerical. At every time step, the simulator assembles a coupled dynamics system, solves for the next configuration, evaluates a multi-objective score, estimates its gradient through perturbed simulations, and projects the updated controls back onto their feasible set.
 
-## Résultat du projet
+## The problem in one minute
 
-https://private-user-images.githubusercontent.com/75246845/519122384-018999d9-b407-4cab-a683-73287ce033ac.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NjQxNTI3NzEsIm5iZiI6MTc2NDE1MjQ3MSwicGF0aCI6Ii83NTI0Njg0NS81MTkxMjIzODQtMDE4OTk5ZDktYjQwNy00Y2FiLWE2ODMtNzMyODdjZTAzM2FjLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNTExMjYlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjUxMTI2VDEwMjExMVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTkyOWM4MWZlYmZiYmE2M2YyNDg4ZTYxNTM1OGE0MzEzZGFlNTdmMTg3YThmNzdkMTlkMTZhOTJkNzY5MDBkMDAmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.qOp45T6DWmqifnMOJyPolIUkBFRRC4IajxaQmhn-o94
+- **Dynamic system:** four rigid segments connected by planar pivots, represented by their angles, angular velocities, centres of mass, forces and torques.
+- **Control variables:** five actuator intensities constrained to $[0,1]^5$.
+- **Numerical step:** a 12 × 12 linear system couples four next-step angles with eight joint-reaction components.
+- **Controller:** a local numerical gradient is estimated independently along each control coordinate, then used in a projected ascent step.
+- **Objective:** increase shoulder height while trading off horizontal centre-of-mass position and velocity, segment alignment, and rapid changes in alignment.
 
-## Objectifs Techniques
+This is a feedback-control experiment, not a claim about optimal lifting technique or human biomechanics.
 
-* **Modéliser** un corps humain comme un système poly-articulé (pendule à n branches).
-* **Simuler** les forces internes (muscles) et externes (gravité, réaction du sol, charge) sans moteur physique préexistant.
-* **Optimiser** la commande motrice via une descente de gradient pour réaliser un mouvement complexe (Deadlift) sans perte d'équilibre.
+## Numerical method
 
-## Architecture du Moteur Physique
+### 1. Coupled dynamics
 
-Le noyau du moteur repose sur la théorie du **pendule à n branches**. Le corps est modélisé par quatre segments rigides ($L_i$) reliés par des liaisons pivots parfaites ($O_i$).
+[`src/state.py`](src/state.py) defines the articulated chain and [`src/bone.py`](src/bone.py) maps segment angles to positions, actuator directions, forces and torques. For $n=4$ segments, [`src/matrix.py`](src/matrix.py) constructs the coefficients of
 
-### 1. Modélisation Dynamique (Matricielle)
-Au lieu d'utiliser une librairie externe, les équations du mouvement sont dérivées du **Principe Fondamental de la Dynamique (PFD)** et du **Théorème du Moment Cinétique (TMC)**. Elles sont alors discrétisées avec la méthode d'Euler, ainsi, à chaque pas de temps ($t \approx 1ms$), le système construit et résout une équation matricielle $AX = B$ à $3n$ inconnues :
+$$A(q_t)X = B(q_t,q_{t-1},F,C), \qquad X \in \mathbb{R}^{3n},\; n=4,$$
 
-### 2. Le Modèle de l'Humain
-Les muscles sont modélisés comme des actionneurs exerçant une force dépendant de la géométrie de leurs points d'insertion. Le système gère 5 groupes musculaires majeurs :
+and [`src/update.py`](src/update.py) solves it with `numpy.linalg.solve`. The first four components of `X` update the segment angles; the remaining eight represent joint reactions. The 1 ms finite-difference step makes the dynamics solve the inner loop of the simulation.
 
-| Muscle                   | Os Agoniste | Force Max ($F_{max}$) |
-|:-------------------------|:------------|:----------------------|
-| **Mollets**              | Tibia       | 10 kN                 |
-| **Quadriceps**           | Fémur       | 10 kN                 |
-| **Ischio-jambiers**      | Fémur/Dos   | 10 kN                 |
-| **Lombaires** (Low back) | Dos         | 10 kN                 |
-| **Dorsaux** (Lats)       | Bras        | 2 kN                  |
+### 2. Gradient estimation and constrained update
 
-## Algorithme de Contrôle : Le "Cerveau"
+At each simulation step, [`src/brain.py`](src/brain.py) evaluates the objective after perturbing each of the five controls by $-10^{-3}$, $0$, and $+10^{-3}$. A least-squares slope gives one component of the numerical gradient. The controller then applies the existing projected update
 
-Le défi est de maintenir l'équilibre sous une charge de 175 kg. Le module `brain.py` agit comme le système nerveux central.
+$$e_{k+1}=\operatorname{clip}_{[0,1]}\!\left(e_k+\alpha\gamma^k\nabla Q(e_k)\right),$$
 
-### Optimisation par Descente de Gradient
-L'algorithme cherche à maximiser une fonction de qualité $Q$ définie sur l'espace des efforts musculaires $[0, 1]^5$. La mise à jour des commandes motrices suit la loi :
+with decay factor $\gamma=0.7$, repeating until the largest control change is below $10^{-3}$. Each trial state is restored before the next perturbation, so all coordinate estimates start from the same configuration.
 
-$$e_{n+1} = e_n + k\gamma^n \nabla Q(e_n)$$
+### 3. Objective trade-offs
 
-* **Pas d'apprentissage ($k$) :** Ajusté dynamiquement en fonction du pas de temps ($0.001/t$).
-* **Facteur de décroissance ($\gamma$) :** $0.7$, pour stabiliser la convergence.
-* **Critère d'arrêt :** Convergence locale lorsque $\|e_n-e_{n-1}\|_\infty < 10^{-3}$.
+The hand-designed objective combines five competing terms:
 
-### Fonction de Coût $Q(e)$
-La fonction $Q$ évalue la posture à chaque instant pour garantir la réussite du deadlift. Elle favorise la montée des épaules tout en pénalisant fortement le déséquilibre du centre de gravité et les vitesses excessives.
+1. reward upward shoulder displacement;
+2. penalise horizontal centre-of-mass error relative to a target;
+3. penalise horizontal centre-of-mass speed;
+4. penalise horizontal misalignment of selected segment endpoints;
+5. penalise rapid changes in that misalignment.
 
-## Visualisation et Analyse
+The algorithm therefore seeks a locally useful control at each step. It does not optimise the full trajectory globally and carries no guarantee of convergence or optimality.
 
-Le projet inclut des outils d'analyse (`plot.py`) pour valider la cohérence physique :
-* **Bilan Énergétique :** Vérification de la conservation ($E_m = E_c + E_p \approx \sum W_{muscles}$).
-* **Forces Normalisées :** Visualisation de l'activation musculaire au cours du temps.
+## Existing output
+
+The animation visualises the resulting state sequence. Segment lines show the articulated configuration, while actuator colours vary with their control intensities. It illustrates the solver–controller loop; it is not physical validation. The original recording is available as an [MP4](assets/deadlift_video.mp4).
+
+![Bar-endpoint height and horizontal centre-of-mass position over the existing one-second reference run](assets/trajectory.png)
+
+Over the existing 1,000-step reference window, the bar endpoint moves from 0.225 m to 0.513 m and the maximum horizontal centre-of-mass deviation from the controller's 0.14 m target is 0.0045 m. These are outputs of the chosen parameterisation, not empirical performance measurements. The trajectory becomes unstable beyond the documented window, so the repository does not demonstrate a complete lift.
+
+## Nicolas's contribution
+
+Nicolas implemented the complete numerical pipeline in this repository:
+
+- articulated geometry and state propagation;
+- force, torque and matrix assembly;
+- the 12 × 12 dynamics solve;
+- bounded controls, numerical gradient estimation and projected updates;
+- objective diagnostics and Pygame visualisation.
+
+No external physics engine or automatic-differentiation framework is used.
+
+## Run the existing demo
+
+Tested with Python 3.13.
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python src/demo.py
+```
+
+The final command runs the existing bounded, headless reference simulation, prints its recorded metrics and writes `assets/trajectory.png`. The original interactive visualisation is launched with `python src/main.py` and runs until its Pygame window is closed.
+
+## Approximate parameterisation and limits
+
+The current geometry uses four uniform rods and five line actuators. Segment dimensions, masses, attachment locations and maximum forces are approximate modelling parameters. The nominal 175 kg load is folded into the arm segment's mass and inertia rather than represented as a point mass at the bar.
+
+The model also omits three-dimensional motion, joint limits, passive tissues, activation dynamics, fatigue, collision handling and a detailed foot–ground contact model. There is no calibration against motion capture or force-plate data, no time-step convergence study, and no demonstrated energy-conservation result.
+
+## Read the core implementation
+
+| Path | What to inspect |
+| --- | --- |
+| [`src/matrix.py`](src/matrix.py) | Assembly of the coupled dynamics matrix and right-hand side |
+| [`src/update.py`](src/update.py) | Per-step solve and state update |
+| [`src/brain.py`](src/brain.py) | Objective, numerical gradient and projected controller |
+| [`src/state.py`](src/state.py) | Segment, actuator and initial-state parameters |
+| [`src/bone.py`](src/bone.py) | Kinematics and force/torque geometry |
+| [`src/demo.py`](src/demo.py) | Existing bounded reference run |
+
+For a quick code review, follow `state.py` → `matrix.py` / `update.py` → `brain.py`.
