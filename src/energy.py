@@ -7,8 +7,7 @@ from state import Model
 
 def total_kinetic_energy(model: Model, current: Frame) -> float:
     return sum(
-        0.5 * bone.J * current.theta_dot[i] ** 2 + 0.5 * bone.m * float(np.linalg.norm(current.center_velocity[i]) ** 2)
-        for i, bone in enumerate(model.bones)
+        0.5 * bone.J * current.theta_dot[i] ** 2 + 0.5 * bone.m * float(np.linalg.norm(current.center_velocity[i]) ** 2) for i, bone in enumerate(model.bones)
     )
 
 
@@ -22,8 +21,7 @@ def muscle_power(model: Model, current: Frame, efforts: np.ndarray) -> np.ndarra
         [
             effort
             * sum(
-                np.dot(forces[bone, muscle.index], current.center_velocity[bone])
-                + torques[bone, muscle.index] * current.theta_dot[bone]
+                np.dot(forces[bone, muscle.index], current.center_velocity[bone]) + torques[bone, muscle.index] * current.theta_dot[bone]
                 for bone in (muscle.bone0, muscle.bone1)
                 if bone != -1
             )

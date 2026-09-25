@@ -78,21 +78,11 @@ def b_i(
         return (
             forces[index][0]
             + m * r / 2 / t**2 * (c[index] * (2 * th - _th) + s[index] * (t * th_dot) ** 2)
-            + m
-            / t**2
-            * sum(
-                bones[p].r * (c[p] * (2 * theta[p] - theta_previous[p]) + s[p] * (theta[p] - theta_previous[p]) ** 2)
-                for p in range(index)
-            )
+            + m / t**2 * sum(bones[p].r * (c[p] * (2 * theta[p] - theta_previous[p]) + s[p] * (theta[p] - theta_previous[p]) ** 2) for p in range(index))
         )
 
     return (
         forces[index][1]
         + m * r / 2 / t**2 * (s[index] * (2 * th - _th) - c[index] * (t * th_dot) ** 2)
-        + m
-        / t**2
-        * sum(
-            bones[p].r * (s[p] * (2 * theta[p] - theta_previous[p]) - c[p] * (theta[p] - theta_previous[p]) ** 2)
-            for p in range(index)
-        )
+        + m / t**2 * sum(bones[p].r * (s[p] * (2 * theta[p] - theta_previous[p]) - c[p] * (theta[p] - theta_previous[p]) ** 2) for p in range(index))
     )

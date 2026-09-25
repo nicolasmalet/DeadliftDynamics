@@ -95,9 +95,7 @@ def color_gradient(x: float) -> tuple[int, int, int]:
     return int(139 + x * (255 - 139)), int(255 * x) if x >= 0 else 0, int(-255 * x) if x <= 0 else 0
 
 
-def update_display(
-    model: Model, state: State, efforts: np.ndarray, time: float, screen: pg.Surface, font: pg.font.Font
-) -> bool:
+def update_display(model: Model, state: State, efforts: np.ndarray, time: float, screen: pg.Surface, font: pg.font.Font) -> bool:
     """Updates the PyGame display with the current state of the simulation.
     Returns False if the quit event is triggered, True otherwise.
     """

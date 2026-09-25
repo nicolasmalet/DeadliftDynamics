@@ -12,7 +12,7 @@ dependencies = [
 package = false
 
 [tool.ruff]
-line-length = 120
+line-length = 160
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "PIE", "RUF"]

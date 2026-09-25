@@ -114,9 +114,7 @@ class Frame:
         return origin_velocity + link_velocity / 2
 
 
-def muscle_actions(
-    bones: tuple[Bone, ...], muscles: tuple[Muscle, ...], current: Frame
-) -> tuple[np.ndarray, np.ndarray]:
+def muscle_actions(bones: tuple[Bone, ...], muscles: tuple[Muscle, ...], current: Frame) -> tuple[np.ndarray, np.ndarray]:
     muscle_forces = np.zeros((len(bones), len(muscles), 2))
     muscle_torques = np.zeros((len(bones), len(muscles)))
     for muscle in muscles:
