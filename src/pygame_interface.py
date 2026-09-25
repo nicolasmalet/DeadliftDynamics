@@ -19,7 +19,7 @@ from config import (
     show_ground,
     show_time,
 )
-from state import Model, State
+from state import Model, State, gravity_center
 
 
 def create_display() -> tuple[pg.Surface, pg.font.Font]:
@@ -95,7 +95,9 @@ def color_gradient(x: float) -> tuple[int, int, int]:
     return int(139 + x * (255 - 139)), int(255 * x) if x >= 0 else 0, int(-255 * x) if x <= 0 else 0
 
 
-def update_display(model: Model, state: State, time: float, screen: pg.Surface, font: pg.font.Font) -> bool:
+def update_display(
+    model: Model, state: State, efforts: np.ndarray, time: float, screen: pg.Surface, font: pg.font.Font
+) -> bool:
     """Updates the PyGame display with the current state of the simulation.
     Returns False if the quit event is triggered, True otherwise.
     """
@@ -105,7 +107,7 @@ def update_display(model: Model, state: State, time: float, screen: pg.Surface, 
         draw_ground(screen)
 
     for muscle in model.muscles:
-        draw_muscle(screen, muscle, current, state.efforts[muscle.index])
+        draw_muscle(screen, muscle, current, efforts[muscle.index])
 
     if show_time:
         draw_time(screen, font, time)
@@ -118,7 +120,7 @@ def update_display(model: Model, state: State, time: float, screen: pg.Surface, 
         draw_bar(screen, current)
 
     if show_gravity_center:
-        draw_point(screen, state.gravity_center)
+        draw_point(screen, gravity_center(model, current.centers))
 
     pg.display.update()
 

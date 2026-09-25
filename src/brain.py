@@ -2,21 +2,22 @@ from collections.abc import Callable
 
 import numpy as np
 
+from bone import Frame
 from config import t
-from state import Model, State
+from state import Model, State, alignment, gravity_center
 from update import PreparedStep, prepare_step, update_model
 
 
-def make_decision(model: Model, state: State) -> np.ndarray:
+def make_decision(model: Model, state: State, efforts: np.ndarray) -> np.ndarray:
     """Determine the next muscle efforts by minimizing -Q."""
-    return gradient_descent(model, state, state.efforts, minus_Q, prepare_step(model, state), 0.001, 10**-3 / t, 0.7)
+    return gradient_descent(model, state, efforts, minus_Q, prepare_step(model, state), 0.001, 10**-3 / t, 0.7)
 
 
 def gradient_descent(
     model: Model,
     state: State,
     v: np.ndarray,
-    f: Callable[[Model, State], float],
+    f: Callable[[Model, State, Frame], float],
     prepared: PreparedStep,
     epsilon: float,
     k: float,
@@ -36,10 +37,10 @@ def gradient_descent(
             upper = min(1.0, x[i] + delta)
 
             lower_state = update_model(model, state, x + (lower - x[i]) * directions[i], prepared)
-            f_lower = f(model, lower_state)
+            f_lower = f(model, lower_state, prepared.current)
 
             upper_state = update_model(model, state, x + (upper - x[i]) * directions[i], prepared)
-            f_upper = f(model, upper_state)
+            f_upper = f(model, upper_state, prepared.current)
 
             nabla[i] = (f_upper - f_lower) / (upper - lower)
 
@@ -51,17 +52,17 @@ def gradient_descent(
     raise RuntimeError("control update did not become smaller than epsilon")
 
 
-def minus_Q(model: Model, state: State) -> float:
+def minus_Q(model: Model, state: State, previous: Frame) -> float:
     """Return the loss minimized by the controller."""
-    return -Q(model, state)
+    return -Q(model, state, previous)
 
 
-def Q(model: Model, state: State) -> float:
+def Q(model: Model, state: State, previous: Frame | None = None) -> float:
     """Evaluate the scalar control score on the supplied state."""
-    return Q_terms(model, state)[0]
+    return Q_terms(model, state, previous)[0]
 
 
-def Q_terms(model: Model, state: State) -> list[float]:
+def Q_terms(model: Model, state: State, previous: Frame | None = None) -> list[float]:
     """Evaluate the control score and its five components."""
     a = 50 / t
     b = -(10**7)
@@ -69,12 +70,18 @@ def Q_terms(model: Model, state: State) -> list[float]:
     d = -(1 * 10**5)
     e = -(2 * 10**-6)
 
+    current = Frame.from_angles(model.bones, state.theta, state.theta_previous)
+    previous = previous or Frame.from_angles(model.bones, state.theta_previous, state.theta_previous)
+    center = gravity_center(model, current.centers)
+    center_previous = gravity_center(model, previous.centers)
+    aligned = alignment(current.ends)
+    aligned_previous = alignment(previous.ends)
     shoulder_y = -sum(bone.r * np.cos(state.theta[i]) for i, bone in enumerate(model.bones[:3]))
     y1 = a * (shoulder_y - 0.8)
-    y2 = b * (state.gravity_center[0] - 0.14) ** 2
-    y3 = c * ((state.gravity_center[0] - state.gravity_center_previous[0]) / t) ** 2
-    y4 = d * state.alignment
-    y5 = e * (d * (state.alignment - state.alignment_previous) / t) ** 2
+    y2 = b * (center[0] - 0.14) ** 2
+    y3 = c * ((center[0] - center_previous[0]) / t) ** 2
+    y4 = d * aligned
+    y5 = e * (d * (aligned - aligned_previous) / t) ** 2
     y = y1 + y2 + y3 + y4 + y5
 
     return [y, y1, -y2, -y3, -y4, -y5]

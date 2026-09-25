@@ -16,20 +16,22 @@ def main() -> None:
     i = 0
 
     while True:
-        state = update_model(model, state, make_decision(model, state))
+        efforts = make_decision(model, state, history.efforts[-1])
+        state = update_model(model, state, efforts)
         current = Frame.from_angles(model.bones, state.theta, state.theta_previous)
         history.states.append(state)
+        history.efforts.append(efforts)
         history.q_terms.append(Q_terms(model, state))
         history.kinetic_energy.append(total_kinetic_energy(model, current))
         history.potential_energy.append(total_potential_energy(model, current))
-        history.muscle_power.append(muscle_power(model, current, state.efforts))
-        if show_model and not update_display(model, state, i * t, screen, font):
+        history.muscle_power.append(muscle_power(model, current, efforts))
+        if show_model and not update_display(model, state, efforts, i * t, screen, font):
             break
         i += 1
 
     if review:
-        for i, saved_state in enumerate(history.states):
-            update_display(model, saved_state, i * t, screen, font)
+        for i, (saved_state, efforts) in enumerate(zip(history.states, history.efforts, strict=True)):
+            update_display(model, saved_state, efforts, i * t, screen, font)
 
     pg.quit()
 

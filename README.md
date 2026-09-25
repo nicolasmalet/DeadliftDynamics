@@ -161,7 +161,7 @@ $$
 \delta=10^{-3}.
 $$
 
-At the boundary of $B$, the infeasible perturbation is replaced by $e_i=0$ or $e_i=1$, giving the corresponding one-sided difference. The fixed geometry, dynamic state and trajectory history are stored separately. Every perturbation therefore creates only a new dynamic state containing the two latest angles, centres of mass and alignment values required by the finite differences.
+At the boundary of $B$, the infeasible perturbation is replaced by $e_i=0$ or $e_i=1$, giving the corresponding one-sided difference. The fixed geometry, dynamic state and trajectory history are stored separately. Every perturbation therefore creates only a new dynamic state containing the two latest angles; the controller derives its centre-of-mass and alignment terms from them.
 
 The control update is
 

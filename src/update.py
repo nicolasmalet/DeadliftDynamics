@@ -5,11 +5,12 @@ import numpy as np
 from bone import Frame, muscle_actions
 from config import g
 from matrix import a_ij, b_i
-from state import Model, State, alignment, gravity_center
+from state import Model, State
 
 
 @dataclass(frozen=True)
 class PreparedStep:
+    current: Frame
     matrix: np.ndarray
     muscle_forces: np.ndarray
     muscle_torques: np.ndarray
@@ -21,7 +22,7 @@ def prepare_step(model: Model, state: State) -> PreparedStep:
     c, s = np.cos(state.theta), np.sin(state.theta)
     n = len(model.bones)
     matrix = np.array([[a_ij(i, j, model.bones, c, s) for j in range(3 * n)] for i in range(3 * n)])
-    return PreparedStep(matrix, muscle_forces, muscle_torques)
+    return PreparedStep(current, matrix, muscle_forces, muscle_torques)
 
 
 def update_model(model: Model, state: State, efforts: np.ndarray, prepared: PreparedStep | None = None) -> State:
@@ -37,7 +38,4 @@ def update_model(model: Model, state: State, efforts: np.ndarray, prepared: Prep
         [b_i(i, model.bones, state.theta, state.theta_previous, c, s, forces, torques) for i in range(3 * n)]
     )
     theta = np.linalg.solve(prepared.matrix, vector)[:n]
-    next_frame = Frame.from_angles(model.bones, theta, state.theta)
-    center = gravity_center(model, next_frame.centers)
-    aligned = alignment(next_frame.ends)
-    return State(state.theta, theta, efforts, state.gravity_center, center, state.alignment, aligned)
+    return State(state.theta, theta)

@@ -70,7 +70,7 @@ def plot_phase_portrait(model: Model, history: History) -> None:
 
 
 def plot_efforts(model: Model, history: History) -> None:
-    efforts = np.array([state.efforts for state in history.states[1:]])
+    efforts = np.array(history.efforts[1:])
     time = np.arange(1, len(history.states)) * t
     fig, axes = plt.subplots(2, 3)
     locations = ((1, 1), (0, 1), (1, 0), (0, 0), (0, 2))

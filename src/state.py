@@ -17,16 +17,12 @@ class Model:
 class State:
     theta_previous: np.ndarray
     theta: np.ndarray
-    efforts: np.ndarray
-    gravity_center_previous: np.ndarray
-    gravity_center: np.ndarray
-    alignment_previous: float
-    alignment: float
 
 
 @dataclass
 class History:
     states: list[State] = field(default_factory=list)
+    efforts: list[np.ndarray] = field(default_factory=list)
     q_terms: list[list[float]] = field(default_factory=list)
     kinetic_energy: list[float] = field(default_factory=list)
     potential_energy: list[float] = field(default_factory=list)
@@ -60,7 +56,6 @@ def create_state() -> tuple[Model, State, History]:
     theta = np.array([2.758207465905639, -1.8630010384296538, 2.2435477244889137, -0.005690488236282301])
     current = Frame.from_angles(bones, theta, theta)
     model = Model(bones, muscles, current.centers.copy())
-    center = gravity_center(model, current.centers)
-    aligned = alignment(current.ends)
-    state = State(theta.copy(), theta, np.array([0.36, 0.68, 1.0, 1.0, 0.0]), center.copy(), center, aligned, aligned)
-    return model, state, History(states=[state])
+    state = State(theta.copy(), theta)
+    efforts = np.array([0.36, 0.68, 1.0, 1.0, 0.0])
+    return model, state, History(states=[state], efforts=[efforts])
