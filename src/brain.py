@@ -57,15 +57,14 @@ def minus_Q(model: Model, state: State, previous: Frame) -> float:
     return -Q(model, state, previous)
 
 
-def Q(model: Model, state: State, previous: Frame | None = None) -> float:
+def Q(model: Model, state: State, previous: Frame) -> float:
     """Evaluate the scalar control score on the supplied state."""
     return Q_terms(model, state, previous)[0]
 
 
-def Q_terms(model: Model, state: State, previous: Frame | None = None) -> list[float]:
+def Q_terms(model: Model, state: State, previous: Frame) -> list[float]:
     """Evaluate the control score and its five components."""
     current = Frame.from_angles(model.bones, state.theta, state.theta_previous)
-    previous = previous or Frame.from_angles(model.bones, state.theta_previous, state.theta_previous)
     center = gravity_center(model, current.centers)
     center_previous = gravity_center(model, previous.centers)
     aligned = alignment(current.ends)

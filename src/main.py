@@ -13,15 +13,17 @@ from update import update_model
 def main() -> None:
     model, state, history = create_state()
     screen, font = create_display()
+    current = Frame.from_angles(model.bones, state.theta, state.theta_previous)
     i = 0
 
     while True:
+        previous = current
         efforts = make_decision(model, state, history.efforts[-1])
         state = update_model(model, state, efforts)
         current = Frame.from_angles(model.bones, state.theta, state.theta_previous)
         history.states.append(state)
         history.efforts.append(efforts)
-        history.q_terms.append(Q_terms(model, state))
+        history.q_terms.append(Q_terms(model, state, previous))
         history.kinetic_energy.append(total_kinetic_energy(model, current))
         history.potential_energy.append(total_potential_energy(model, current))
         history.muscle_power.append(muscle_power(model, current, efforts))
