@@ -64,12 +64,6 @@ def Q(model: Model, state: State, previous: Frame | None = None) -> float:
 
 def Q_terms(model: Model, state: State, previous: Frame | None = None) -> list[float]:
     """Evaluate the control score and its five components."""
-    a = 50 / t
-    b = -(10**7)
-    c = -(10**3)
-    d = -(1 * 10**5)
-    e = -(2 * 10**-6)
-
     current = Frame.from_angles(model.bones, state.theta, state.theta_previous)
     previous = previous or Frame.from_angles(model.bones, state.theta_previous, state.theta_previous)
     center = gravity_center(model, current.centers)
@@ -77,14 +71,18 @@ def Q_terms(model: Model, state: State, previous: Frame | None = None) -> list[f
     aligned = alignment(current.ends)
     aligned_previous = alignment(previous.ends)
     shoulder_y = -sum(bone.r * np.cos(state.theta[i]) for i, bone in enumerate(model.bones[:3]))
-    y1 = a * (shoulder_y - 0.8)
-    y2 = b * (center[0] - 0.14) ** 2
-    y3 = c * ((center[0] - center_previous[0]) / t) ** 2
-    y4 = d * aligned
-    y5 = e * (d * (aligned - aligned_previous) / t) ** 2
-    y = y1 + y2 + y3 + y4 + y5
-
-    return [y, y1, -y2, -y3, -y4, -y5]
+    features = np.array(
+        [
+            shoulder_y - 0.8,
+            (center[0] - 0.14) ** 2,
+            ((center[0] - center_previous[0]) / t) ** 2,
+            aligned,
+            (10**5 * (aligned - aligned_previous) / t) ** 2,
+        ]
+    )
+    weights = np.array([50 / t, -(10**7), -(10**3), -(10**5), -(2 * 10**-6)])
+    contributions = weights * features
+    return [float(weights @ features), float(contributions[0]), *(-contributions[1:]).tolist()]
 
 
 def g(x: float, y: float, z: float) -> float:
