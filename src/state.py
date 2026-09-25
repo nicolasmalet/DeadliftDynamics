@@ -1,4 +1,4 @@
-from copy import copy, deepcopy
+from copy import deepcopy
 from dataclasses import dataclass
 
 import numpy as np
@@ -23,43 +23,18 @@ class State:
 
     def copy(self) -> "State":
         """Copy the current state without copying complete result histories."""
-        source_bones = [self.ground, *self.bones]
-        bone_map = {id(source): copy(source) for source in source_bones}
-        muscle_map = {id(source): copy(source) for source in self.muscles}
-
-        for source in source_bones:
-            target = bone_map[id(source)]
-            target.previous_bone = bone_map.get(id(source.previous_bone))
-            target.muscles = [muscle_map[id(muscle)] for muscle in source.muscles]
-            target.l_theta = source.l_theta[-3:].copy()
-            target.e_r = source.e_r.copy()
-            target.e_theta = source.e_theta.copy()
-            target.origin = source.origin.copy()
-            target.end = source.end.copy()
-            target.G = source.G.copy()
-            target.G_dot = source.G_dot.copy()
-            target.P = source.P.copy()
-            target.F_max_muscles = {name: force.copy() for name, force in source.F_max_muscles.items()}
-            target.C_max_muscles = source.C_max_muscles.copy()
-
-        for source in self.muscles:
-            target = muscle_map[id(source)]
-            target.bone0 = bone_map[id(source.bone0)]
-            target.bone1 = bone_map[id(source.bone1)]
-
-        efforts = self.efforts.copy()
-        return State(
-            ground=bone_map[id(self.ground)],
-            bones=[bone_map[id(bone)] for bone in self.bones],
-            muscles=[muscle_map[id(muscle)] for muscle in self.muscles],
-            efforts=efforts,
-            l_efforts=[efforts.copy()],
-            l_Q=[self.l_Q[-1].copy()],
-            Ec=[self.Ec[-1]],
-            Ep=[self.Ep[-1]],
-            l_p_muscle=[[values[-1]] for values in self.l_p_muscle],
-            l_gravity_center=[value.copy() for value in self.l_gravity_center[-2:]],
-        )
+        memo = {
+            id(self.l_efforts): [self.efforts.copy()],
+            id(self.l_Q): [self.l_Q[-1].copy()],
+            id(self.Ec): [self.Ec[-1]],
+            id(self.Ep): [self.Ep[-1]],
+            id(self.l_p_muscle): [[values[-1]] for values in self.l_p_muscle],
+            id(self.l_gravity_center): [value.copy() for value in self.l_gravity_center[-2:]],
+        }
+        for bone in [self.ground, *self.bones]:
+            memo[id(bone.l_theta)] = bone.l_theta[-3:].copy()
+            memo[id(bone.first_state)] = bone.first_state
+        return deepcopy(self, memo)
 
     def reset_bones(self) -> None:
         for bone in self.bones:
