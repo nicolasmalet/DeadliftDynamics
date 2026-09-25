@@ -36,11 +36,11 @@ def gradient_descent(
             lower = max(0.0, x[i] - delta)
             upper = min(1.0, x[i] + delta)
 
-            lower_state = state.copy()
+            lower_state = state.copy_for_trial()
             update_model(lower_state, x + (lower - x[i]) * directions[i], shallow_update=True)
             f_lower = f(lower_state)
 
-            upper_state = state.copy()
+            upper_state = state.copy_for_trial()
             update_model(upper_state, x + (upper - x[i]) * directions[i], shallow_update=True)
             f_upper = f(upper_state)
 

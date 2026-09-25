@@ -1,4 +1,4 @@
-from copy import deepcopy
+from copy import copy, deepcopy
 from dataclasses import dataclass
 
 import numpy as np
@@ -21,20 +21,18 @@ class State:
     l_p_muscle: list[list[float]]
     l_gravity_center: list[np.ndarray]
 
-    def copy(self) -> "State":
-        """Copy the current state without copying complete result histories."""
-        memo = {
-            id(self.l_efforts): [self.efforts.copy()],
-            id(self.l_Q): [self.l_Q[-1].copy()],
-            id(self.Ec): [self.Ec[-1]],
-            id(self.Ep): [self.Ep[-1]],
-            id(self.l_p_muscle): [[values[-1]] for values in self.l_p_muscle],
-            id(self.l_gravity_center): [value.copy() for value in self.l_gravity_center[-2:]],
-        }
-        for bone in [self.ground, *self.bones]:
-            memo[id(bone.l_theta)] = bone.l_theta[-3:].copy()
-            memo[id(bone.first_state)] = bone.first_state
-        return deepcopy(self, memo)
+    def copy_for_trial(self) -> "State":
+        """Copy only the values changed by a gradient trial."""
+        state = copy(self)
+        state.bones = [copy(bone) for bone in self.bones]
+        previous_bone = self.ground
+        for bone in state.bones:
+            bone.previous_bone = previous_bone
+            bone.l_theta = bone.l_theta[-3:].copy()
+            previous_bone = bone
+        state.efforts = self.efforts.copy()
+        state.l_gravity_center = [value.copy() for value in self.l_gravity_center[-2:]]
+        return state
 
     def reset_bones(self) -> None:
         for bone in self.bones:
