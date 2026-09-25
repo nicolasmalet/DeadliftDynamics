@@ -69,7 +69,7 @@ def Q_terms(state: State) -> list[float]:
     a = 50 / t
     b = -(10**7)
     c = -(10**3)
-    d = -(10**4)
+    d = -(1 * 10**5)
     e = -(2 * 10**-6)
 
     y1 = a * (state.bones[2].end[1] - 0.8)
@@ -83,4 +83,4 @@ def Q_terms(state: State) -> list[float]:
 
 
 def g(x: float, y: float, z: float) -> float:
-    return ((x - y) ** 2 + (x - z) ** 2 + (y - z) ** 2) ** 0.5
+    return (x - y) ** 2 + (x - z) ** 2 + (y - z) ** 2

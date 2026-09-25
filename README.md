@@ -125,7 +125,7 @@ $$
 a_1=\frac{50}{t},\qquad
 a_2=10^7,\qquad
 a_3=10^3,\qquad
-a_4=10^4,\qquad
+a_4=10^5,\qquad
 a_5=2\times10^{-6}.
 $$
 
@@ -134,11 +134,9 @@ The alignment term implemented in the repository is
 $$
 g
 =
-\sqrt{
 (x_{\mathrm{knee}}-x_{\mathrm{hand}})^2
 +(x_{\mathrm{knee}}-x_{\mathrm{shoulder}})^2
-+(x_{\mathrm{shoulder}}-x_{\mathrm{hand}})^2
-}.
++(x_{\mathrm{shoulder}}-x_{\mathrm{hand}})^2.
 $$
 
 The terms in $Q$ have different physical units. The coefficients $a_1,\ldots,a_5$ are empirical weights that place the competing objectives on useful numerical scales; $Q$ is a control score, not a physical energy.
@@ -204,11 +202,11 @@ T=1.000\ \mathrm{s},
 \qquad
 y_{\mathrm{bar}}(0)=0.225\ \mathrm{m},
 \qquad
-y_{\mathrm{bar}}(T)=0.513\ \mathrm{m},
+y_{\mathrm{bar}}(T)=0.646\ \mathrm{m},
 $$
 
 $$
-\max_k|G_x(k)-0.14|=4.6\times10^{-3}\ \mathrm{m}.
+\max_k|G_x(k)-0.14|=1.88\times10^{-2}\ \mathrm{m}.
 $$
 
 These are numerical outputs of the chosen parameterisation, not empirical measurements or evidence of an optimal lifting technique. The trajectory becomes unstable beyond the documented interval and does not demonstrate a complete lift.
