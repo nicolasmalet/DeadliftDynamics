@@ -215,18 +215,19 @@ These are numerical outputs of the chosen parameterisation, not empirical measur
 
 ## 7. Run the experiment
 
+With [`uv`](https://docs.astral.sh/uv/), one command creates the environment, installs the dependencies and runs the reference simulation:
+
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python src/demo.py
+uv run python src/demo.py
 ```
 
 The interactive visualisation is launched with:
 
 ```bash
-python src/main.py
+uv run python src/main.py
 ```
+
+Without `uv`, install `requirements.txt` in a virtual environment and run the same Python commands.
 
 ## 8. Implementation map
 
