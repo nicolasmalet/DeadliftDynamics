@@ -1,81 +1,42 @@
 import numpy as np
 
-import state
-from energy import get_gravity_center, total_kinetic_energy, total_potential_energy, p_muscle
+from energy import get_gravity_center, p_muscle, total_kinetic_energy, total_potential_energy
 from matrix import a_ij, b_i
-
-n: int = len(state.bones)
-m: int = len(state.muscles)
+from state import State
 
 
-def update_bones(X: np.ndarray, shallow_update: bool = False) -> None:
-    """
-    Updates the angular position of all bones based on the solution vector X.
-    """
+def update_bones(state: State, X: np.ndarray, shallow_update: bool = False) -> None:
+    """Update the angular position of every bone from the solution vector."""
     for bone in state.bones:
         bone.theta = X[bone.index]
         bone.l_theta.append(bone.theta)
-        bone.update(shallow_update)
+        bone.update(state.bones, shallow_update)
 
 
-def update_model(efforts: np.ndarray, shallow_update: bool = False) -> None:
-    """
-    Performs a single step of the simulation.
-    Constructs and solves the system matrices to find the new state.
-    """
+def update_model(state: State, efforts: np.ndarray, shallow_update: bool = False) -> None:
+    """Assemble and solve one step of the dynamics."""
+    bones = state.bones
+    n = len(bones)
+    c = [np.cos(bone.theta) for bone in bones]
+    s = [np.sin(bone.theta) for bone in bones]
+    l_forces = [bone.F_tot(efforts) for bone in bones]
+    l_torques = [bone.C_tot(efforts) for bone in bones]
 
-    c = [np.cos(bone.theta) for bone in state.bones]
-    s = [np.sin(bone.theta) for bone in state.bones]
-    l_forces = [bone.F_tot(efforts) for bone in state.bones]
-    l_torques = [bone.C_tot(efforts) for bone in state.bones]
-
-    A = np.array([[a_ij(i, j, n, c, s) for j in range(3 * n)] for i in range(3 * n)])
-    B = np.array([b_i(i, n, c, s, l_forces, l_torques) for i in range(3 * n)])
-
+    A = np.array([[a_ij(i, j, bones, c, s) for j in range(3 * n)] for i in range(3 * n)])
+    B = np.array([b_i(i, bones, c, s, l_forces, l_torques) for i in range(3 * n)])
     X = np.linalg.solve(A, B)
 
-    update_bones(X, shallow_update)
-    update_gravity_center()
+    update_bones(state, X, shallow_update)
+    state.l_gravity_center.append(get_gravity_center(bones))
 
     if not shallow_update:
-        update_muscle_power(efforts)
-        update_energy()
+        for i, muscle in enumerate(state.muscles):
+            state.l_p_muscle[i].append(p_muscle(muscle, efforts[i]))
+        state.Ec.append(total_kinetic_energy(bones))
+        state.Ep.append(total_potential_energy(bones))
 
 
-def update_energy() -> None:
-    """
-    Records the current kinetic and potential energy of the system.
-    """
-    state.Ec.append(total_kinetic_energy(state.bones))
-    state.Ep.append(total_potential_energy(state.bones))
-
-
-def update_muscle_power(_efforts: np.ndarray) -> None:
-    """
-    Records the power exerted by each muscle.
-    """
-    for i in range(m):
-        state.l_p_muscle[i].append(p_muscle(state.muscles[i], _efforts[i]))
-
-
-def update_gravity_center() -> None:
-    """
-    Calculates and records the position of the center of mass of the entire system.
-    """
-    state.l_gravity_center.append(get_gravity_center(state.bones))
-
-
-def reverse_l_gravity_center_changes() -> None:
-    """
-    Undoes the last gravity center recording.
-    """
-    state.l_gravity_center.pop()
-
-
-def reset_energy() -> None:
-    """
-    Resets the energy recording lists.
-    """
+def reset_energy(state: State) -> None:
     state.Ec[:] = [0.0]
     state.Ep[:] = [total_potential_energy(state.bones)]
-    state.l_p_muscle[:] = [[0.0] for _ in range(len(state.muscles))]
+    state.l_p_muscle[:] = [[0.0] for _ in state.muscles]

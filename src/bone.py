@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Tuple, Optional, Any, Dict
 
-from config import *
+import numpy as np
+
+from config import g, t
 
 
 class Bone:
@@ -47,7 +49,7 @@ class Bone:
 
         self.first_state: Optional[list[Any]] = None
 
-    def update(self, shallow_update: bool = False) -> None:
+    def update(self, bones: list[Bone], shallow_update: bool = False) -> None:
         """
         Updates the physical properties of the bone based on the current angle theta.
         """
@@ -64,7 +66,7 @@ class Bone:
 
             self.theta_dot = self.get_theta_dot()
 
-            self.G_dot = self.get_G_dot()
+            self.G_dot = self.get_G_dot(bones)
 
             for muscle in self.muscles:
                 self.F_max_muscles[muscle.name] = self.get_F_max_muscle(muscle)
@@ -131,11 +133,10 @@ class Bone:
         """
         return (self.l_theta[-1] - self.l_theta[-2]) / t
 
-    def get_G_dot(self) -> np.ndarray:
+    def get_G_dot(self, bones: list[Bone]) -> np.ndarray:
         """
         Calculates the velocity of the center of gravity.
         """
-        from state import bones
         return 0.5 * self.r * self.theta_dot * self.e_theta + \
             np.sum(np.array([bones[i].r * bones[i].theta_dot * bones[i].e_theta for i in range(self.index)]), axis=0)
 

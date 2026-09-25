@@ -1,14 +1,14 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-import state
 from config import t, background_color
+from state import State
 from utils import differentiate, integrate
 
 plt.style.use('dark_background')
 
 
-def plot_movement() -> None:
+def plot_movement(state: State) -> None:
     """
     Plots the angular position, velocity, acceleration, and system energy over time.
     """
@@ -52,7 +52,7 @@ def plot_movement() -> None:
     plt.show()
 
 
-def plot_energies() -> None:
+def plot_energies(state: State) -> None:
     """
     Plots detailed energy breakdowns including muscle work and power.
     """
@@ -100,7 +100,7 @@ def plot_energies() -> None:
     plt.show()
 
 
-def plot_phase_portrait() -> None:
+def plot_phase_portrait(state: State) -> None:
     """
     Plots the phase portrait (angle vs angular velocity) for each bone.
     """
@@ -111,7 +111,7 @@ def plot_phase_portrait() -> None:
     plt.show()
 
 
-def plot_efforts() -> None:
+def plot_efforts(state: State) -> None:
     """
     Plots the muscle efforts and the components of the Q cost function.
     """
@@ -165,7 +165,7 @@ def plot_efforts() -> None:
     plt.show()
 
 
-def plot_Q() -> None:
+def plot_Q(state: State) -> None:
     """
     Plots the Q cost function and its components over time using a logarithmic scale.
     """

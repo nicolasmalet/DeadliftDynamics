@@ -1,38 +1,32 @@
-from copy import copy
-from typing import Callable, List, Union
+from typing import Callable
 
 import numpy as np
 
-import state
 from config import t
-from update import update_model, reverse_l_gravity_center_changes
+from state import State
+from update import update_model
 
 
-def make_decision() -> np.ndarray:
-    """
-    Determines the next set of muscle efforts by minimizing -Q.
-    """
-    state.efforts = gradient_descent(state.efforts, minus_Q, 0.001, 10 ** -3 / t, 0.7)
-    state.l_efforts.append(copy(state.efforts))
-    state.l_Q.append(Q(True))
-
+def make_decision(state: State) -> np.ndarray:
+    """Determine the next muscle efforts by minimizing -Q."""
+    state.efforts = gradient_descent(state, state.efforts, minus_Q, 0.001, 10**-3 / t, 0.7)
+    state.l_efforts.append(state.efforts.copy())
+    state.l_Q.append(Q(state, explicit=True))
     return state.efforts
 
 
 def gradient_descent(
+    state: State,
     v: np.ndarray,
-    f: Callable[[], float],
+    f: Callable[[State], float],
     epsilon: float,
     k: float,
     gamma: float,
     max_iterations: int = 100,
 ) -> np.ndarray:
-    """
-    Minimizes f by projected gradient descent with finite differences.
-    """
+    """Minimize f by projected gradient descent with finite differences."""
     m = len(state.muscles)
     x = v.copy()
-    bone_states = [bone.get_state() for bone in state.bones]
     delta = 1e-3
 
     for n in range(max_iterations):
@@ -41,17 +35,17 @@ def gradient_descent(
             lower = max(0.0, x[i] - delta)
             upper = min(1.0, x[i] + delta)
 
-            update_model(x + (lower - x[i]) * e_i(i, m), shallow_update=True)
-            f_lower = f()
-            reverse_changes(bone_states)
+            lower_state = state.copy()
+            update_model(lower_state, x + (lower - x[i]) * e_i(i, m), shallow_update=True)
+            f_lower = f(lower_state)
 
-            update_model(x + (upper - x[i]) * e_i(i, m), shallow_update=True)
-            f_upper = f()
-            reverse_changes(bone_states)
+            upper_state = state.copy()
+            update_model(upper_state, x + (upper - x[i]) * e_i(i, m), shallow_update=True)
+            f_upper = f(upper_state)
 
             nabla[i] = (f_upper - f_lower) / (upper - lower)
 
-        updated = np.clip(x - k * gamma ** n * nabla, 0, 1)
+        updated = np.clip(x - k * gamma**n * nabla, 0, 1)
         if np.linalg.norm(updated - x, ord=np.inf) < epsilon:
             return updated
         x = updated
@@ -59,20 +53,18 @@ def gradient_descent(
     raise RuntimeError("control update did not become smaller than epsilon")
 
 
-def minus_Q() -> float:
-    """Returns the loss minimized by the controller."""
-    return -Q()
+def minus_Q(state: State) -> float:
+    """Return the loss minimized by the controller."""
+    return -Q(state)
 
 
-def Q(explicit: bool = False) -> Union[float, List[float]]:
-    """
-    The cost/quality function to be optimized. Evaluates the current state of the simulation.
-    """
+def Q(state: State, explicit: bool = False) -> float | list[float]:
+    """Evaluate the control score on the supplied state."""
     a = 50 / t
-    b = - 1 * 10 ** 7
-    c = - 1 * 10 ** 3
-    d = - 1 * 10 ** 4
-    e = - 2 * 10 ** - 6
+    b = -(10**7)
+    c = -(10**3)
+    d = -(10**4)
+    e = -(2 * 10**-6)
 
     y1 = a * (state.bones[2].end[1] - 0.8)
     y2 = b * (state.l_gravity_center[-1][0] - 0.14) ** 2
@@ -83,32 +75,14 @@ def Q(explicit: bool = False) -> Union[float, List[float]]:
 
     if explicit:
         return [y, y1, -y2, -y3, -y4, -y5]
-
     return y
 
 
 def g(x: float, y: float, z: float) -> float:
-    """
-    Helper geometry function used in the cost function.
-    """
     return ((x - y) ** 2 + (x - z) ** 2 + (y - z) ** 2) ** 0.5
 
 
 def e_i(i: int, j: int) -> np.ndarray:
-    """
-    Returns a basis vector with 1 at index i and length j.
-    """
     e = np.zeros(j)
     e[i] = 1
     return e
-
-
-def reverse_changes(saved_bone_states: List[List[np.ndarray]]) -> None:
-    """
-    Reverts the simulation state to the provided saved state.
-    """
-    for bone in state.bones:
-        bone.l_theta.pop()
-        bone.theta = bone.l_theta[-1]
-        bone.set_state(saved_bone_states[bone.index])
-    reverse_l_gravity_center_changes()

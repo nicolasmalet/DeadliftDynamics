@@ -9,9 +9,9 @@ import numpy as np
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-import state
 from brain import make_decision
 from config import t
+from state import create_state
 from update import update_model
 
 
@@ -23,10 +23,11 @@ def main() -> None:
     if args.steps < 1:
         parser.error("--steps must be positive")
 
+    state = create_state()
     bar_y = [float(state.bones[-1].end[1])]
     com_x = [float(state.l_gravity_center[-1][0])]
     for _ in range(args.steps):
-        update_model(make_decision())
+        update_model(state, make_decision(state))
         bar_y.append(float(state.bones[-1].end[1]))
         com_x.append(float(state.l_gravity_center[-1][0]))
 

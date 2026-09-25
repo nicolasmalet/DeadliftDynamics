@@ -163,7 +163,7 @@ $$
 \delta=10^{-3}.
 $$
 
-At the boundary of $B$, the infeasible perturbation is replaced by $e_i=0$ or $e_i=1$, giving the corresponding one-sided difference. Every perturbed simulation starts from the same saved mechanical state.
+At the boundary of $B$, the infeasible perturbation is replaced by $e_i=0$ or $e_i=1$, giving the corresponding one-sided difference. Every perturbation runs on an independent copy containing the three latest angles, two latest centres of mass and latest value of $Q$ required by the finite differences.
 
 The control update is
 
@@ -233,7 +233,7 @@ Without `uv`, install `requirements.txt` in a virtual environment and run the sa
 
 | Mathematical component | Implementation |
 | --- | --- |
-| State and parameters | [`src/state.py`](src/state.py) |
+| Explicit simulation state and construction | [`src/state.py`](src/state.py) |
 | Kinematics and actuator geometry | [`src/bone.py`](src/bone.py) |
 | $A(\theta_k)$ and $B(\theta_k,\theta_{k-1},e_k)$ | [`src/matrix.py`](src/matrix.py) |
 | Linear solve and state propagation | [`src/update.py`](src/update.py) |

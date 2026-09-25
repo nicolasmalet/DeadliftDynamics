@@ -7,8 +7,6 @@ t = 1e-3  # time for euler's method, the lower the time, the better the approxim
 
 # You can change the following variables depending on what you want to see
 
-running = True
-plotting = True
 review = True
 
 plot_m = False  # plot movement

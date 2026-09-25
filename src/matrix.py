@@ -1,13 +1,14 @@
 import numpy as np
 
+from bone import Bone
 from config import t
-from state import bones
 
 
-def a_ij(i: int, j: int, n: int, c: list[float], s: list[float]) -> float:
+def a_ij(i: int, j: int, bones: list[Bone], c: list[float], s: list[float]) -> float:
     """
     Computes the coefficient A[i, j] for the system matrix A.
     """
+    n = len(bones)
     qi, qj = i // n, j // n
     ri, rj = i % n, j % n
 
@@ -52,10 +53,11 @@ def a_ij(i: int, j: int, n: int, c: list[float], s: list[float]) -> float:
     return 0
 
 
-def b_i(i: int, n: int, c: list[float], s: list[float], l_forces: list[np.ndarray], l_torques: list[float]) -> float:
+def b_i(i: int, bones: list[Bone], c: list[float], s: list[float], l_forces: list[np.ndarray], l_torques: list[float]) -> float:
     """
     Computes the coefficient B[i] for the system vector B.
     """
+    n = len(bones)
     q, index = i // n, i % n
     bone = bones[index]
     th = bone.l_theta[-1]
