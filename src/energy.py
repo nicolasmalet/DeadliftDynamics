@@ -38,6 +38,7 @@ def p_muscle(muscle: Muscle, effort: float) -> float:
     """
     p = 0.0
     for bone in [muscle.bone0, muscle.bone1]:
+        assert bone is not None
         if bone.name != 'ground':
             p += effort * (np.dot(bone.F_max_muscles[muscle.name], bone.G_dot) + bone.C_max_muscles[
                 muscle.name] * bone.theta_dot)

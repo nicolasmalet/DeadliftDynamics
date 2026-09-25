@@ -43,11 +43,11 @@ def plot_movement(state: State) -> None:
     axs[1, 0].set_ylabel('angular acceleration (rad/s2)')
     axs[1, 1].set_ylabel('Energy (J)')
 
-    fig.patch.set_facecolor(background_color / 255)
+    fig.patch.set_facecolor(np.array(background_color) / 255)
 
     for ax in fig.get_axes():
         ax.legend()
-        ax.set_facecolor(background_color / 255)
+        ax.set_facecolor(np.array(background_color) / 255)
 
     plt.show()
 
@@ -69,9 +69,9 @@ def plot_energies(state: State) -> None:
         axs[0, 1].plot(t_axis, integrate(state.l_p_muscle[i])[1: N + 1], label=state.muscles[i].name, linewidth=1)
 
     axs[1, 0].plot(t_axis, np.sum(np.array([state.Ec, state.Ep]), axis=0), label='Em', color='white', linewidth=1)
-    axs[1, 0].plot(t_axis, integrate(np.sum(np.array(state.l_p_muscle), axis=0))[1: N + 1],
+    axs[1, 0].plot(t_axis, integrate(np.sum(np.array(state.l_p_muscle), axis=0).tolist())[1: N + 1],
                    label='E tot muscles', color='magenta', linewidth=1)
-    axs[1, 1].plot(t_axis[1:-1], differentiate(np.sum(np.array([state.Ec[1:], state.Ep[1:]]), axis=0)),
+    axs[1, 1].plot(t_axis[1:-1], differentiate(np.sum(np.array([state.Ec[1:], state.Ep[1:]]), axis=0).tolist()),
                    label='P system',
                    color='white', linewidth=1)
     axs[1, 1].plot(t_axis, np.sum(np.array(state.l_p_muscle), axis=0), label='P tot muscles', color='magenta',
@@ -92,11 +92,11 @@ def plot_energies(state: State) -> None:
     axs[1, 0].set_ylabel('Energy (J)')
     axs[1, 1].set_ylabel('Power (W)')
 
-    fig.patch.set_facecolor(background_color / 255)
+    fig.patch.set_facecolor(np.array(background_color) / 255)
 
     for ax in fig.get_axes():
         ax.legend()
-        ax.set_facecolor(background_color / 255)
+        ax.set_facecolor(np.array(background_color) / 255)
     plt.show()
 
 
@@ -154,11 +154,11 @@ def plot_efforts(state: State) -> None:
     axs[1, 0].set_ylabel('normalized force')
     axs[1, 1].set_ylabel('normalized force')
 
-    fig.patch.set_facecolor(background_color / 255)
+    fig.patch.set_facecolor(np.array(background_color) / 255)
 
     for ax in fig.get_axes():
         ax.legend()
-        ax.set_facecolor(background_color / 255)
+        ax.set_facecolor(np.array(background_color) / 255)
 
     axs[1, 2].set_yscale('log')
 
@@ -178,11 +178,11 @@ def plot_Q(state: State) -> None:
     name = {0: 'Q', 1: 'shoulder height', 2: 'gravity center pos', 3: 'gravity center speed',
             4: 'g', 5: 'dg/dt'}
 
-    fig.patch.set_facecolor(background_color / 255)
+    fig.patch.set_facecolor(np.array(background_color) / 255)
 
     for j in range(len(state.l_Q[0])):
         ax.plot(t_axis[1:], [state.l_Q[i][j] for i in range(1, len(state.l_Q))], label=name[j], linewidth=1)
-        ax.set_facecolor(background_color / 255)
+        ax.set_facecolor(np.array(background_color) / 255)
     ax.set_yscale('log')
 
     ax.legend()

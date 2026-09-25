@@ -198,19 +198,23 @@ class Muscle:
         """
         Calculates the absolute position of the muscle's origin point.
         """
+        assert self.bone0 is not None
         return self.bone0.origin + np.dot(self.bone0.P, self.relative_0)
 
     def end(self) -> np.ndarray:
         """
         Calculates the absolute position of the muscle's insertion point.
         """
+        assert self.bone1 is not None
         return self.bone1.origin + np.dot(self.bone1.P, self.relative_1)
 
     def other_bone(self, bone: Bone) -> Bone:
         """
         Returns the bone connected to the muscle that is not the given bone.
         """
-        return self.bone1 if bone == self.bone0 else self.bone0
+        other = self.bone1 if bone == self.bone0 else self.bone0
+        assert other is not None
+        return other
 
     def tendon_position(self, bone: Bone) -> np.ndarray:
         """

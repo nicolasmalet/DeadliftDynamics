@@ -11,7 +11,7 @@ def make_decision(state: State) -> np.ndarray:
     """Determine the next muscle efforts by minimizing -Q."""
     state.efforts = gradient_descent(state, state.efforts, minus_Q, 0.001, 10**-3 / t, 0.7)
     state.l_efforts.append(state.efforts.copy())
-    state.l_Q.append(Q(state, explicit=True))
+    state.l_Q.append(Q_terms(state))
     return state.efforts
 
 
@@ -58,8 +58,13 @@ def minus_Q(state: State) -> float:
     return -Q(state)
 
 
-def Q(state: State, explicit: bool = False) -> float | list[float]:
-    """Evaluate the control score on the supplied state."""
+def Q(state: State) -> float:
+    """Evaluate the scalar control score on the supplied state."""
+    return Q_terms(state)[0]
+
+
+def Q_terms(state: State) -> list[float]:
+    """Evaluate the control score and its five components."""
     a = 50 / t
     b = -(10**7)
     c = -(10**3)
@@ -73,9 +78,7 @@ def Q(state: State, explicit: bool = False) -> float | list[float]:
     y5 = e * ((y4 + state.l_Q[-1][4]) / t) ** 2
     y = y1 + y2 + y3 + y4 + y5
 
-    if explicit:
-        return [y, y1, -y2, -y3, -y4, -y5]
-    return y
+    return [y, y1, -y2, -y3, -y4, -y5]
 
 
 def g(x: float, y: float, z: float) -> float:

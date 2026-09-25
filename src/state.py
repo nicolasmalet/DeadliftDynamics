@@ -65,6 +65,7 @@ class State:
         for bone in self.bones:
             bone.l_theta = bone.l_theta[0:3]
             bone.theta = bone.l_theta[-1]
+            assert bone.first_state is not None
             bone.set_state(bone.first_state)
 
 

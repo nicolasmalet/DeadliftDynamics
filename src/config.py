@@ -1,4 +1,3 @@
-import numpy as np
 
 g = 9.81  # gravity constant of Earth at the sea level
 bar_mass = 175  # mass of the deadlift barr
@@ -20,7 +19,7 @@ show_bar = True  # draw the deadlift bar
 show_time = True  # show the timer
 show_gravity_center = False  # show the center of gravity of the entire system
 
-background_color = np.array([27, 34, 26])
+background_color = (27, 34, 26)
 ground_color = (50, 50, 50)
 bone_color = (255, 255, 240)
 muscle_color = (255, 0, 0)
