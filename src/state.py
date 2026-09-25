@@ -34,11 +34,6 @@ def gravity_center(model: Model, centers: np.ndarray) -> np.ndarray:
     return masses @ centers / masses.sum()
 
 
-def alignment(ends: np.ndarray) -> float:
-    knee, shoulder, hand = ends[0, 0], ends[2, 0], ends[3, 0]
-    return (knee - hand) ** 2 + (knee - shoulder) ** 2 + (shoulder - hand) ** 2
-
-
 def create_state() -> tuple[Model, State, History]:
     bones = (
         Bone("tibia", 0.49, 6, bone_color),

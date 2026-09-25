@@ -4,7 +4,7 @@ import numpy as np
 
 from bone import Frame
 from config import t
-from state import Model, State, alignment, gravity_center
+from state import Model, State, gravity_center
 from update import PreparedStep, prepare_step, update_model
 
 
@@ -67,8 +67,8 @@ def Q_terms(model: Model, state: State, previous: Frame) -> list[float]:
     current = Frame.from_angles(model.bones, state.theta, state.theta_previous)
     center = gravity_center(model, current.centers)
     center_previous = gravity_center(model, previous.centers)
-    aligned = alignment(current.ends)
-    aligned_previous = alignment(previous.ends)
+    aligned = g(current.ends[0, 0], current.ends[3, 0], current.ends[2, 0])
+    aligned_previous = g(previous.ends[0, 0], previous.ends[3, 0], previous.ends[2, 0])
     shoulder_y = -sum(bone.r * np.cos(state.theta[i]) for i, bone in enumerate(model.bones[:3]))
     features = np.array(
         [
