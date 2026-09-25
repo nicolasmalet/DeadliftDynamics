@@ -2,7 +2,7 @@ import numpy as np
 import pygame as pg
 from pygame.gfxdraw import aacircle, filled_circle
 
-from bone import Frame, Muscle, attachment, frame
+from bone import Frame, Muscle, frame
 from config import (
     background_color,
     bone_color,
@@ -51,8 +51,8 @@ def draw_muscle(screen: pg.Surface, muscle: Muscle, current: Frame, effort: floa
     """Draws a muscle with color intensity based on effort."""
     draw_line(
         screen,
-        attachment(muscle, muscle.bone0, current),
-        attachment(muscle, muscle.bone1, current),
+        muscle.tendon_position(muscle.bone0, current),
+        muscle.tendon_position(muscle.bone1, current),
         color_gradient(effort),
     )
 

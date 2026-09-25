@@ -16,6 +16,24 @@ class Bone:
     def J(self) -> float:
         return self.m * self.r**2 / 12
 
+    def get_e_r_and_e_theta(self, theta: float) -> tuple[np.ndarray, np.ndarray]:
+        s, c = np.sin(theta), np.cos(theta)
+        return np.array([s, -c]), np.array([c, s])
+
+    def get_P(self, theta: float) -> np.ndarray:
+        return np.column_stack(self.get_e_r_and_e_theta(theta))
+
+    def get_end(self, origin: np.ndarray, theta: float) -> np.ndarray:
+        e_r, _ = self.get_e_r_and_e_theta(theta)
+        return origin + self.r * e_r
+
+    def get_G(self, origin: np.ndarray, theta: float) -> np.ndarray:
+        return (origin + self.get_end(origin, theta)) / 2
+
+    @staticmethod
+    def get_theta_dot(theta: float, theta_previous: float) -> float:
+        return (theta - theta_previous) / t
+
 
 @dataclass(frozen=True)
 class Muscle:
@@ -26,6 +44,12 @@ class Muscle:
     relative_0: tuple[float, float]
     relative_1: tuple[float, float]
     max_force: float
+
+    def tendon_position(self, bone: int, current: "Frame") -> np.ndarray:
+        relative = self.relative_0 if bone == self.bone0 else self.relative_1
+        if bone == -1:
+            return np.array(relative)
+        return current.origins[bone] + np.column_stack((current.e_r[bone], current.e_theta[bone])) @ relative
 
 
 @dataclass(frozen=True)
@@ -41,25 +65,18 @@ class Frame:
 
 def frame(bones: tuple[Bone, ...], theta: np.ndarray, theta_previous: np.ndarray) -> Frame:
     lengths = np.array([bone.r for bone in bones])
-    e_r = np.column_stack((np.sin(theta), -np.cos(theta)))
-    e_theta = np.column_stack((np.cos(theta), np.sin(theta)))
+    rotations = np.array([bone.get_P(theta[i]) for i, bone in enumerate(bones)])
+    e_r, e_theta = rotations[:, :, 0], rotations[:, :, 1]
     origins = np.zeros((len(bones), 2))
     origins[1:] = np.cumsum(lengths[:-1, None] * e_r[:-1], axis=0)
-    ends = origins + lengths[:, None] * e_r
-    centers = (origins + ends) / 2
-    theta_dot = (theta - theta_previous) / t
+    centers = np.array([bone.get_G(origins[i], theta[i]) for i, bone in enumerate(bones)])
+    ends = 2 * centers - origins
+    theta_dot = np.array([bone.get_theta_dot(theta[i], theta_previous[i]) for i, bone in enumerate(bones)])
     link_velocity = lengths[:, None] * theta_dot[:, None] * e_theta
     origin_velocity = np.zeros_like(link_velocity)
     origin_velocity[1:] = np.cumsum(link_velocity[:-1], axis=0)
     center_velocity = origin_velocity + link_velocity / 2
     return Frame(e_r, e_theta, origins, ends, centers, theta_dot, center_velocity)
-
-
-def attachment(muscle: Muscle, bone: int, current: Frame) -> np.ndarray:
-    relative = muscle.relative_0 if bone == muscle.bone0 else muscle.relative_1
-    if bone == -1:
-        return np.array(relative)
-    return current.origins[bone] + np.column_stack((current.e_r[bone], current.e_theta[bone])) @ relative
 
 
 def forces_and_torques(
@@ -68,8 +85,8 @@ def forces_and_torques(
     muscle_forces = np.zeros((len(bones), len(muscles), 2))
     muscle_torques = np.zeros((len(bones), len(muscles)))
     for muscle in muscles:
-        p0 = attachment(muscle, muscle.bone0, current)
-        p1 = attachment(muscle, muscle.bone1, current)
+        p0 = muscle.tendon_position(muscle.bone0, current)
+        p1 = muscle.tendon_position(muscle.bone1, current)
         direction = p1 - p0
         direction /= np.linalg.norm(direction)
         for bone, sign, point in ((muscle.bone0, 1, p0), (muscle.bone1, -1, p1)):
