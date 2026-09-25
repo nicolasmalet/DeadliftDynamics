@@ -1,6 +1,6 @@
 import pygame as pg
 
-from bone import frame
+from bone import Frame
 from brain import Q_terms, make_decision
 from config import plot_e, plot_eff, plot_m, plot_p, plot_Q_function, review, show_model, t
 from energy import muscle_power, total_kinetic_energy, total_potential_energy
@@ -17,7 +17,7 @@ def main() -> None:
 
     while True:
         state = update_model(model, state, make_decision(model, state))
-        current = frame(model.bones, state.theta, state.theta_previous)
+        current = Frame.from_angles(model.bones, state.theta, state.theta_previous)
         history.states.append(state)
         history.q_terms.append(Q_terms(model, state))
         history.kinetic_energy.append(total_kinetic_energy(model, current))

@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from bone import Bone, Muscle, frame
+from bone import Bone, Frame, Muscle
 from config import bar_mass, bone_color
 
 
@@ -58,7 +58,7 @@ def create_state() -> tuple[Model, State, History]:
         Muscle("lats", 4, 2, 3, (0.05, 0), (0.05, 0), 2000),
     )
     theta = np.array([2.758207465905639, -1.8630010384296538, 2.2435477244889137, -0.005690488236282301])
-    current = frame(bones, theta, theta)
+    current = Frame.from_angles(bones, theta, theta)
     model = Model(bones, muscles, current.centers.copy())
     center = gravity_center(model, current.centers)
     aligned = alignment(current.ends)

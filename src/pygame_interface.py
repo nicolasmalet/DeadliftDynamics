@@ -2,7 +2,7 @@ import numpy as np
 import pygame as pg
 from pygame.gfxdraw import aacircle, filled_circle
 
-from bone import Frame, Muscle, frame
+from bone import Frame, Muscle
 from config import (
     background_color,
     bone_color,
@@ -99,7 +99,7 @@ def update_display(model: Model, state: State, time: float, screen: pg.Surface, 
     """Updates the PyGame display with the current state of the simulation.
     Returns False if the quit event is triggered, True otherwise.
     """
-    current = frame(model.bones, state.theta, state.theta_previous)
+    current = Frame.from_angles(model.bones, state.theta, state.theta_previous)
     screen.fill(background_color)
     if show_ground:
         draw_ground(screen)

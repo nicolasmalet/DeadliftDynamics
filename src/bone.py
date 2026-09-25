@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from config import g, t
+from config import t
 
 
 @dataclass(frozen=True)
@@ -51,6 +51,16 @@ class Muscle:
             return np.array(relative)
         return current.origins[bone] + np.column_stack((current.e_r[bone], current.e_theta[bone])) @ relative
 
+    def get_force(self, current: "Frame") -> np.ndarray:
+        direction = self.tendon_position(self.bone1, current) - self.tendon_position(self.bone0, current)
+        direction /= np.linalg.norm(direction)
+        return self.max_force * direction
+
+    @staticmethod
+    def get_torque(point: np.ndarray, center: np.ndarray, force: np.ndarray) -> float:
+        arm = point - center
+        return arm[0] * force[1] - arm[1] * force[0]
+
 
 @dataclass(frozen=True)
 class Frame:
@@ -62,41 +72,59 @@ class Frame:
     theta_dot: np.ndarray
     center_velocity: np.ndarray
 
+    @classmethod
+    def from_angles(cls, bones: tuple[Bone, ...], theta: np.ndarray, theta_previous: np.ndarray) -> "Frame":
+        lengths = np.array([bone.r for bone in bones])
+        e_r, e_theta = cls.get_directions(bones, theta)
+        origins = cls.get_origins(lengths, e_r)
+        centers = cls.get_centers(bones, origins, theta)
+        ends = cls.get_ends(origins, centers)
+        theta_dot = cls.get_theta_dot(bones, theta, theta_previous)
+        velocity = cls.get_center_velocity(lengths, e_theta, theta_dot)
+        return cls(e_r, e_theta, origins, ends, centers, theta_dot, velocity)
 
-def frame(bones: tuple[Bone, ...], theta: np.ndarray, theta_previous: np.ndarray) -> Frame:
-    lengths = np.array([bone.r for bone in bones])
-    rotations = np.array([bone.get_P(theta[i]) for i, bone in enumerate(bones)])
-    e_r, e_theta = rotations[:, :, 0], rotations[:, :, 1]
-    origins = np.zeros((len(bones), 2))
-    origins[1:] = np.cumsum(lengths[:-1, None] * e_r[:-1], axis=0)
-    centers = np.array([bone.get_G(origins[i], theta[i]) for i, bone in enumerate(bones)])
-    ends = 2 * centers - origins
-    theta_dot = np.array([bone.get_theta_dot(theta[i], theta_previous[i]) for i, bone in enumerate(bones)])
-    link_velocity = lengths[:, None] * theta_dot[:, None] * e_theta
-    origin_velocity = np.zeros_like(link_velocity)
-    origin_velocity[1:] = np.cumsum(link_velocity[:-1], axis=0)
-    center_velocity = origin_velocity + link_velocity / 2
-    return Frame(e_r, e_theta, origins, ends, centers, theta_dot, center_velocity)
+    @staticmethod
+    def get_directions(bones: tuple[Bone, ...], theta: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        rotations = np.array([bone.get_P(theta[i]) for i, bone in enumerate(bones)])
+        return rotations[:, :, 0], rotations[:, :, 1]
+
+    @staticmethod
+    def get_origins(lengths: np.ndarray, e_r: np.ndarray) -> np.ndarray:
+        origins = np.zeros((len(lengths), 2))
+        origins[1:] = np.cumsum(lengths[:-1, None] * e_r[:-1], axis=0)
+        return origins
+
+    @staticmethod
+    def get_centers(bones: tuple[Bone, ...], origins: np.ndarray, theta: np.ndarray) -> np.ndarray:
+        return np.array([bone.get_G(origins[i], theta[i]) for i, bone in enumerate(bones)])
+
+    @staticmethod
+    def get_ends(origins: np.ndarray, centers: np.ndarray) -> np.ndarray:
+        return 2 * centers - origins
+
+    @staticmethod
+    def get_theta_dot(bones: tuple[Bone, ...], theta: np.ndarray, theta_previous: np.ndarray) -> np.ndarray:
+        return np.array([bone.get_theta_dot(theta[i], theta_previous[i]) for i, bone in enumerate(bones)])
+
+    @staticmethod
+    def get_center_velocity(lengths: np.ndarray, e_theta: np.ndarray, theta_dot: np.ndarray) -> np.ndarray:
+        link_velocity = lengths[:, None] * theta_dot[:, None] * e_theta
+        origin_velocity = np.zeros_like(link_velocity)
+        origin_velocity[1:] = np.cumsum(link_velocity[:-1], axis=0)
+        return origin_velocity + link_velocity / 2
 
 
-def forces_and_torques(
-    bones: tuple[Bone, ...], muscles: tuple[Muscle, ...], current: Frame, efforts: np.ndarray
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def muscle_actions(
+    bones: tuple[Bone, ...], muscles: tuple[Muscle, ...], current: Frame
+) -> tuple[np.ndarray, np.ndarray]:
     muscle_forces = np.zeros((len(bones), len(muscles), 2))
     muscle_torques = np.zeros((len(bones), len(muscles)))
     for muscle in muscles:
-        p0 = muscle.tendon_position(muscle.bone0, current)
-        p1 = muscle.tendon_position(muscle.bone1, current)
-        direction = p1 - p0
-        direction /= np.linalg.norm(direction)
-        for bone, sign, point in ((muscle.bone0, 1, p0), (muscle.bone1, -1, p1)):
+        force = muscle.get_force(current)
+        for bone, applied_force in ((muscle.bone0, force), (muscle.bone1, -force)):
             if bone == -1:
                 continue
-            force = sign * muscle.max_force * direction
-            muscle_forces[bone, muscle.index] = force
-            arm = point - current.centers[bone]
-            muscle_torques[bone, muscle.index] = arm[0] * force[1] - arm[1] * force[0]
-
-    forces = np.array([efforts @ muscle_forces[i] + np.array([0.0, -bone.m * g]) for i, bone in enumerate(bones)])
-    torques = muscle_torques @ efforts
-    return forces, torques, muscle_forces, muscle_torques
+            point = muscle.tendon_position(bone, current)
+            muscle_forces[bone, muscle.index] = applied_force
+            muscle_torques[bone, muscle.index] = muscle.get_torque(point, current.centers[bone], applied_force)
+    return muscle_forces, muscle_torques

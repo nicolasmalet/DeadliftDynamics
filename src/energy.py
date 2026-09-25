@@ -1,6 +1,6 @@
 import numpy as np
 
-from bone import Frame, forces_and_torques
+from bone import Frame, muscle_actions
 from config import g
 from state import Model
 
@@ -17,7 +17,7 @@ def total_potential_energy(model: Model, current: Frame) -> float:
 
 
 def muscle_power(model: Model, current: Frame, efforts: np.ndarray) -> np.ndarray:
-    _, _, forces, torques = forces_and_torques(model.bones, model.muscles, current, efforts)
+    forces, torques = muscle_actions(model.bones, model.muscles, current)
     return np.array(
         [
             effort

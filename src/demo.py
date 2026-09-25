@@ -8,7 +8,7 @@ import numpy as np
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from bone import frame
+from bone import Frame
 from brain import make_decision
 from config import t
 from state import create_state
@@ -17,12 +17,12 @@ from update import update_model
 
 def main(steps: int = 1000, output: Path = Path("assets/trajectory.png")) -> None:
     model, state, _ = create_state()
-    current = frame(model.bones, state.theta, state.theta_previous)
+    current = Frame.from_angles(model.bones, state.theta, state.theta_previous)
     bar_y = [float(current.ends[-1, 1])]
     com_x = [float(state.gravity_center[0])]
     for _ in range(steps):
         state = update_model(model, state, make_decision(model, state))
-        current = frame(model.bones, state.theta, state.theta_previous)
+        current = Frame.from_angles(model.bones, state.theta, state.theta_previous)
         bar_y.append(float(current.ends[-1, 1]))
         com_x.append(float(state.gravity_center[0]))
 
