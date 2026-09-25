@@ -191,35 +191,9 @@ or fail after 100 iterations. This criterion only states that the projected upda
 
 The controller optimises the next simulated state at every time step. It is therefore a local, one-step feedback controller, not a global trajectory optimiser.
 
-## 6. Reference trajectory
+## 6. Run the simulation
 
-![Bar height and horizontal centre-of-mass position](assets/trajectory.png)
-
-For the existing 1,000-step reference run,
-
-$$
-T=1.000\ \mathrm{s},
-\qquad
-y_{\mathrm{bar}}(0)=0.225\ \mathrm{m},
-\qquad
-y_{\mathrm{bar}}(T)=0.579\ \mathrm{m},
-$$
-
-$$
-\max_k|G_x(k)-0.14|=1.77\times10^{-2}\ \mathrm{m}.
-$$
-
-These are numerical outputs of the chosen parameterisation, not empirical measurements or evidence of an optimal lifting technique. The trajectory becomes unstable beyond the documented interval and does not demonstrate a complete lift.
-
-## 7. Run the experiment
-
-With [`uv`](https://docs.astral.sh/uv/), one command creates the environment, installs the dependencies and runs the reference simulation:
-
-```bash
-uv run python src/demo.py
-```
-
-The interactive visualisation is launched with:
+With [`uv`](https://docs.astral.sh/uv/), one command creates the environment, installs the dependencies and launches the interactive visualisation:
 
 ```bash
 uv run python src/main.py
@@ -227,7 +201,7 @@ uv run python src/main.py
 
 Without `uv`, install `requirements.txt` in a virtual environment and run the same Python commands.
 
-## 8. Implementation map
+## 7. Implementation map
 
 | Mathematical component | Implementation |
 | --- | --- |
@@ -236,7 +210,6 @@ Without `uv`, install `requirements.txt` in a virtual environment and run the sa
 | $A(\theta_k)$ and $B(\theta_k,\theta_{k-1},e_k)$ | [`src/matrix.py`](src/matrix.py) |
 | Linear solve and state propagation | [`src/update.py`](src/update.py) |
 | $Q$, $L=-Q$, $\widehat{\nabla L}$ and projected descent | [`src/brain.py`](src/brain.py) |
-| Reproducible reference trajectory | [`src/demo.py`](src/demo.py) |
 
 For a short review, follow
 
@@ -250,7 +223,7 @@ $$
 \texttt{brain.py}.
 $$
 
-## 9. Scope and limitations
+## 8. Scope and limitations
 
 The model uses four uniform rods, five idealised actuators, approximate anthropometric parameters and a nominal 175 kg load folded into the terminal segment.
 
