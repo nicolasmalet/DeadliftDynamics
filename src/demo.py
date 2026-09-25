@@ -8,6 +8,7 @@ import numpy as np
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+from bone import frame
 from brain import make_decision
 from config import t
 from state import create_state
@@ -15,13 +16,15 @@ from update import update_model
 
 
 def main(steps: int = 1000, output: Path = Path("assets/trajectory.png")) -> None:
-    state = create_state()
-    bar_y = [float(state.bones[-1].end[1])]
-    com_x = [float(state.l_gravity_center[-1][0])]
+    model, state, _ = create_state()
+    current = frame(model.bones, state.theta, state.theta_previous)
+    bar_y = [float(current.ends[-1, 1])]
+    com_x = [float(state.gravity_center[0])]
     for _ in range(steps):
-        update_model(state, make_decision(state))
-        bar_y.append(float(state.bones[-1].end[1]))
-        com_x.append(float(state.l_gravity_center[-1][0]))
+        state = update_model(model, state, make_decision(model, state))
+        current = frame(model.bones, state.theta, state.theta_previous)
+        bar_y.append(float(current.ends[-1, 1]))
+        com_x.append(float(state.gravity_center[0]))
 
     if not all(np.isfinite(series).all() for series in (bar_y, com_x, state.efforts)) or not np.all(
         (state.efforts >= 0) & (state.efforts <= 1)

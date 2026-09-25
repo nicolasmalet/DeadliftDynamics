@@ -1,42 +1,43 @@
+from dataclasses import dataclass
+
 import numpy as np
 
-from energy import get_gravity_center, p_muscle, total_kinetic_energy, total_potential_energy
+from bone import forces_and_torques, frame
+from config import g
 from matrix import a_ij, b_i
-from state import State
+from state import Model, State, alignment, gravity_center
 
 
-def update_bones(state: State, X: np.ndarray, shallow_update: bool = False) -> None:
-    """Update the angular position of every bone from the solution vector."""
-    for bone in state.bones:
-        bone.theta = X[bone.index]
-        bone.l_theta.append(bone.theta)
-        bone.update(state.bones, shallow_update)
+@dataclass(frozen=True)
+class PreparedStep:
+    matrix: np.ndarray
+    muscle_forces: np.ndarray
+    muscle_torques: np.ndarray
 
 
-def update_model(state: State, efforts: np.ndarray, shallow_update: bool = False) -> None:
-    """Assemble and solve one step of the dynamics."""
-    bones = state.bones
-    n = len(bones)
-    c = [np.cos(bone.theta) for bone in bones]
-    s = [np.sin(bone.theta) for bone in bones]
-    l_forces = [bone.F_tot(efforts) for bone in bones]
-    l_torques = [bone.C_tot(efforts) for bone in bones]
-
-    A = np.array([[a_ij(i, j, bones, c, s) for j in range(3 * n)] for i in range(3 * n)])
-    B = np.array([b_i(i, bones, c, s, l_forces, l_torques) for i in range(3 * n)])
-    X = np.linalg.solve(A, B)
-
-    update_bones(state, X, shallow_update)
-    state.l_gravity_center.append(get_gravity_center(bones))
-
-    if not shallow_update:
-        for i, muscle in enumerate(state.muscles):
-            state.l_p_muscle[i].append(p_muscle(muscle, efforts[i]))
-        state.Ec.append(total_kinetic_energy(bones))
-        state.Ep.append(total_potential_energy(bones))
+def prepare_step(model: Model, state: State) -> PreparedStep:
+    current = frame(model.bones, state.theta, state.theta_previous)
+    _, _, muscle_forces, muscle_torques = forces_and_torques(model.bones, model.muscles, current, state.efforts)
+    c, s = np.cos(state.theta), np.sin(state.theta)
+    n = len(model.bones)
+    matrix = np.array([[a_ij(i, j, model.bones, c, s) for j in range(3 * n)] for i in range(3 * n)])
+    return PreparedStep(matrix, muscle_forces, muscle_torques)
 
 
-def reset_energy(state: State) -> None:
-    state.Ec[:] = [0.0]
-    state.Ep[:] = [total_potential_energy(state.bones)]
-    state.l_p_muscle[:] = [[0.0] for _ in state.muscles]
+def update_model(model: Model, state: State, efforts: np.ndarray, prepared: PreparedStep | None = None) -> State:
+    """Solve one time step and return its dynamic state."""
+    prepared = prepared or prepare_step(model, state)
+    forces = np.array(
+        [efforts @ prepared.muscle_forces[i] + np.array([0.0, -bone.m * g]) for i, bone in enumerate(model.bones)]
+    )
+    torques = prepared.muscle_torques @ efforts
+    c, s = np.cos(state.theta), np.sin(state.theta)
+    n = len(model.bones)
+    vector = np.array(
+        [b_i(i, model.bones, state.theta, state.theta_previous, c, s, forces, torques) for i in range(3 * n)]
+    )
+    theta = np.linalg.solve(prepared.matrix, vector)[:n]
+    next_frame = frame(model.bones, theta, state.theta)
+    center = gravity_center(model, next_frame.centers)
+    aligned = alignment(next_frame.ends)
+    return State(state.theta, theta, efforts, state.gravity_center, center, state.alignment, aligned)

@@ -161,7 +161,7 @@ $$
 \delta=10^{-3}.
 $$
 
-At the boundary of $B$, the infeasible perturbation is replaced by $e_i=0$ or $e_i=1$, giving the corresponding one-sided difference. Every perturbation runs on an independent copy containing the three latest angles, two latest centres of mass and latest value of $Q$ required by the finite differences.
+At the boundary of $B$, the infeasible perturbation is replaced by $e_i=0$ or $e_i=1$, giving the corresponding one-sided difference. The fixed geometry, dynamic state and trajectory history are stored separately. Every perturbation therefore creates only a new dynamic state containing the two latest angles, centres of mass and alignment values required by the finite differences.
 
 The control update is
 
@@ -202,11 +202,11 @@ T=1.000\ \mathrm{s},
 \qquad
 y_{\mathrm{bar}}(0)=0.225\ \mathrm{m},
 \qquad
-y_{\mathrm{bar}}(T)=0.646\ \mathrm{m},
+y_{\mathrm{bar}}(T)=0.579\ \mathrm{m},
 $$
 
 $$
-\max_k|G_x(k)-0.14|=1.88\times10^{-2}\ \mathrm{m}.
+\max_k|G_x(k)-0.14|=1.77\times10^{-2}\ \mathrm{m}.
 $$
 
 These are numerical outputs of the chosen parameterisation, not empirical measurements or evidence of an optimal lifting technique. The trajectory becomes unstable beyond the documented interval and does not demonstrate a complete lift.

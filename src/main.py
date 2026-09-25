@@ -1,45 +1,48 @@
 import pygame as pg
 
-from brain import make_decision
+from bone import frame
+from brain import Q_terms, make_decision
 from config import plot_e, plot_eff, plot_m, plot_p, plot_Q_function, review, show_model, t
+from energy import muscle_power, total_kinetic_energy, total_potential_energy
 from plot import plot_efforts, plot_energies, plot_movement, plot_phase_portrait, plot_Q
 from pygame_interface import create_display, update_display
 from state import create_state
-from update import reset_energy, update_model
+from update import update_model
 
 
 def main() -> None:
-    state = create_state()
+    model, state, history = create_state()
     screen, font = create_display()
     i = 0
 
     while True:
-        state.efforts = make_decision(state)
-        update_model(state, state.efforts)
-        if show_model and not update_display(state, i * t, screen, font):
+        state = update_model(model, state, make_decision(model, state))
+        current = frame(model.bones, state.theta, state.theta_previous)
+        history.states.append(state)
+        history.q_terms.append(Q_terms(model, state))
+        history.kinetic_energy.append(total_kinetic_energy(model, current))
+        history.potential_energy.append(total_potential_energy(model, current))
+        history.muscle_power.append(muscle_power(model, current, state.efforts))
+        if show_model and not update_display(model, state, i * t, screen, font):
             break
         i += 1
 
     if review:
-        state.reset_bones()
-        reset_energy(state)
-        for i in range(1, len(state.l_efforts)):
-            state.efforts = state.l_efforts[i]
-            update_model(state, state.efforts)
-            update_display(state, i * t, screen, font)
+        for i, saved_state in enumerate(history.states):
+            update_display(model, saved_state, i * t, screen, font)
 
     pg.quit()
 
     if plot_m:
-        plot_movement(state)
+        plot_movement(model, history)
     if plot_e:
-        plot_energies(state)
+        plot_energies(model, history)
     if plot_p:
-        plot_phase_portrait(state)
+        plot_phase_portrait(model, history)
     if plot_eff:
-        plot_efforts(state)
+        plot_efforts(model, history)
     if plot_Q_function:
-        plot_Q(state)
+        plot_Q(model, history)
 
 
 if __name__ == "__main__":
