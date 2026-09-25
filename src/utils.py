@@ -1,5 +1,3 @@
-import numpy as np
-
 from config import t
 
 
@@ -18,12 +16,3 @@ def integrate(f: list[float]) -> list[float]:
     for i in range(len(f)):
         F.append(F[-1] + t * f[i])
     return F
-
-
-def least_squares_method(x: np.ndarray, y: np.ndarray) -> float:
-    """
-    Computes the slope of the linear regression line for data points (x, y) using the least squares method.
-    """
-    s = sum(x)
-    n = len(x)
-    return (n * np.dot(x, y) - s * sum(y)) / (n * np.dot(x, x) - s ** 2)

@@ -6,47 +6,62 @@ import numpy as np
 import state
 from config import t
 from update import update_model, reverse_l_gravity_center_changes
-from utils import least_squares_method
 
 
 def make_decision() -> np.ndarray:
     """
-    Determines the next set of muscle efforts to optimize the movement using gradient descent.
+    Determines the next set of muscle efforts by minimizing -Q.
     """
-    state.efforts = gradient_descent(state.efforts, Q, 0.001, 10 ** - 3 / t, 0.7)
+    state.efforts = gradient_descent(state.efforts, minus_Q, 0.001, 10 ** -3 / t, 0.7)
     state.l_efforts.append(copy(state.efforts))
     state.l_Q.append(Q(True))
 
     return state.efforts
 
 
-def gradient_descent(v: np.ndarray, f: Callable, epsilon: float, k: float, gamma: float, n: int = 0) -> np.ndarray:
+def gradient_descent(
+    v: np.ndarray,
+    f: Callable[[], float],
+    epsilon: float,
+    k: float,
+    gamma: float,
+    max_iterations: int = 100,
+) -> np.ndarray:
     """
-    Performs gradient descent optimization to minimize the function f.
+    Minimizes f by projected gradient descent with finite differences.
     """
     m = len(state.muscles)
-
     x = v.copy()
-    l_dN = np.array([-1, 0, 1]) / 1000
     bone_states = [bone.get_state() for bone in state.bones]
-    nabla = np.zeros(m)
+    delta = 1e-3
 
-    for i in range(m):
-        values = np.zeros(3)
+    for n in range(max_iterations):
+        nabla = np.zeros(m)
+        for i in range(m):
+            lower = max(0.0, x[i] - delta)
+            upper = min(1.0, x[i] + delta)
 
-        for j, dN in enumerate(l_dN):
-            update_model(x + dN * e_i(i, m), shallow_update=True)
-            values[j] = f()
+            update_model(x + (lower - x[i]) * e_i(i, m), shallow_update=True)
+            f_lower = f()
             reverse_changes(bone_states)
 
-        nabla[i] = least_squares_method(l_dN, values)
+            update_model(x + (upper - x[i]) * e_i(i, m), shallow_update=True)
+            f_upper = f()
+            reverse_changes(bone_states)
 
-    v = np.clip(v + k * gamma ** n * nabla, 0, 1)
+            nabla[i] = (f_upper - f_lower) / (upper - lower)
 
-    if np.linalg.norm(v - x, ord=np.inf) < epsilon:
-        return v
+        updated = np.clip(x - k * gamma ** n * nabla, 0, 1)
+        if np.linalg.norm(updated - x, ord=np.inf) < epsilon:
+            return updated
+        x = updated
 
-    return gradient_descent(v, f, epsilon, k, gamma, n + 1)
+    raise RuntimeError("control update did not become smaller than epsilon")
+
+
+def minus_Q() -> float:
+    """Returns the loss minimized by the controller."""
+    return -Q()
 
 
 def Q(explicit: bool = False) -> Union[float, List[float]]:

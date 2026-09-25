@@ -1,76 +1,219 @@
 # DeadliftDynamics
 
-**A from-scratch study of constrained feedback control for a nonlinear, four-link planar system.**
+**Constrained feedback control of a nonlinear articulated system, implemented from first principles.**
 
 <p align="center">
-  <img src="assets/deadlift.gif" alt="Animation of the controlled four-link simulation" width="360">
+  <img src="assets/deadlift.gif" alt="Controlled four-link simulation" width="420">
 </p>
 
-The deadlift provides the geometry; the project is primarily numerical. At every time step, the simulator assembles a coupled dynamics system, solves for the next configuration, evaluates a multi-objective score, estimates its gradient through perturbed simulations, and projects the updated controls back onto their feasible set.
+The deadlift provides a concrete control problem: choose five bounded actuator intensities that raise the bar while keeping a four-link planar system horizontally stable.
 
-## The problem in one minute
+No physics engine or automatic-differentiation framework is used. The equations of motion, numerical solver, controller and visualisation are implemented directly in Python and NumPy.
 
-- **Dynamic system:** four rigid segments connected by planar pivots, represented by their angles, angular velocities, centres of mass, forces and torques.
-- **Control variables:** five actuator intensities constrained to $[0,1]^5$.
-- **Numerical step:** a 12 × 12 linear system couples four next-step angles with eight joint-reaction components.
-- **Controller:** a local numerical gradient is estimated independently along each control coordinate, then used in a projected ascent step.
-- **Objective:** increase shoulder height while trading off horizontal centre-of-mass position and velocity, segment alignment, and rapid changes in alignment.
+## 1. Mechanical model
 
-This is a feedback-control experiment, not a claim about optimal lifting technique or human biomechanics.
+The body is represented by four rigid segments with angles
 
-## Numerical method
+$$
+\theta_k=(\theta_{0,k},\theta_{1,k},\theta_{2,k},\theta_{3,k})^\top.
+$$
 
-### 1. Coupled dynamics
+For segment $i$, of length $r_i$, mass $m_i$, centre of mass $G_i$ and moment of inertia
 
-[`src/state.py`](src/state.py) defines the articulated chain and [`src/bone.py`](src/bone.py) maps segment angles to positions, actuator directions, forces and torques. For $n=4$ segments, [`src/matrix.py`](src/matrix.py) constructs the coefficients of
+$$
+J_i=\frac{m_i r_i^2}{12},
+$$
 
-$$A(q_t)X = B(q_t,q_{t-1},F,C), \qquad X \in \mathbb{R}^{3n},\; n=4,$$
+the balance of forces and moments gives
 
-and [`src/update.py`](src/update.py) solves it with `numpy.linalg.solve`. The first four components of `X` update the segment angles; the remaining eight represent joint reactions. The 1 ms finite-difference step makes the dynamics solve the inner loop of the simulation.
+$$
+m_i\vec a_{G_i/R}=\vec P_i+\vec R_i-\vec R_{i+1}+\vec f_{i,\mathrm{int}},
+$$
 
-### 2. Gradient estimation and constrained update
+$$
+J_i\ddot\theta_i
+=
+M_{G_i}(\vec R_i)-M_{G_i}(\vec R_{i+1})+C_i(e).
+$$
 
-At each simulation step, [`src/brain.py`](src/brain.py) evaluates the objective after perturbing each of the five controls by $-10^{-3}$, $0$, and $+10^{-3}$. A least-squares slope gives one component of the numerical gradient. The controller then applies the existing projected update
+The actuator intensities follow the notation used in the original presentation:
 
-$$e_{k+1}=\operatorname{clip}_{[0,1]}\!\left(e_k+\alpha\gamma^k\nabla Q(e_k)\right),$$
+$$
+e=(e_1,e_2,e_3,e_4,e_5)^\top\in B=[0,1]^5.
+$$
 
-with decay factor $\gamma=0.7$, repeating until the largest control change is below $10^{-3}$. Each trial state is restored before the next perturbation, so all coordinate estimates start from the same configuration.
+## 2. Finite-difference dynamics
 
-### 3. Objective trade-offs
+The implementation uses the time step
 
-The hand-designed objective combines five competing terms:
+$$
+t=10^{-3}\ \mathrm{s}.
+$$
 
-1. reward upward shoulder displacement;
-2. penalise horizontal centre-of-mass error relative to a target;
-3. penalise horizontal centre-of-mass speed;
-4. penalise horizontal misalignment of selected segment endpoints;
-5. penalise rapid changes in that misalignment.
+The angular derivatives are approximated by
 
-The algorithm therefore seeks a locally useful control at each step. It does not optimise the full trajectory globally and carries no guarantee of convergence or optimality.
+$$
+\dot\theta_{i,k}=\frac{\theta_{i,k}-\theta_{i,k-1}}{t},
+\qquad
+\ddot\theta_{i,k+1}
+=
+\frac{\theta_{i,k+1}-2\theta_{i,k}+\theta_{i,k-1}}{t^2}.
+$$
 
-## Existing output
+The geometry is frozen over one time step:
 
-The animation visualises the resulting state sequence. Segment lines show the articulated configuration, while actuator colours vary with their control intensities. It illustrates the solver–controller loop; it is not physical validation. The original recording is available as an [MP4](assets/deadlift_video.mp4).
+$$
+\cos(\theta_{i,k+1})\approx\cos(\theta_{i,k}),
+\qquad
+\sin(\theta_{i,k+1})\approx\sin(\theta_{i,k}).
+$$
 
-![Bar-endpoint height and horizontal centre-of-mass position over the existing one-second reference run](assets/trajectory.png)
+This converts the nonlinear equations into a $12\times12$ linear system:
 
-Over the existing 1,000-step reference window, the bar endpoint moves from 0.225 m to 0.513 m and the maximum horizontal centre-of-mass deviation from the controller's 0.14 m target is 0.0045 m. These are outputs of the chosen parameterisation, not empirical performance measurements. The trajectory becomes unstable beyond the documented window, so the repository does not demonstrate a complete lift.
+$$
+A(\theta_k)X_{k+1}=B(\theta_k,\theta_{k-1},e_k),
+$$
 
-## Nicolas's contribution
+$$
+X_{k+1}
+=
+\begin{pmatrix}
+\theta_{k+1}\\
+R_{x,k+1}\\
+R_{y,k+1}
+\end{pmatrix}
+\in\mathbb R^{12}.
+$$
 
-Nicolas implemented the complete numerical pipeline in this repository:
+The system is solved with `numpy.linalg.solve`; no matrix inverse is formed explicitly.
 
-- articulated geometry and state propagation;
-- force, torque and matrix assembly;
-- the 12 × 12 dynamics solve;
-- bounded controls, numerical gradient estimation and projected updates;
-- objective diagnostics and Pygame visualisation.
+## 3. Internal forces
 
-No external physics engine or automatic-differentiation framework is used.
+Each actuator joins two attachment points. For endpoints $p_j^{(0)}$ and $p_j^{(1)}$, maximum force $F_j^{\max}$ and intensity $e_j$,
 
-## Run the existing demo
+$$
+u_j
+=
+\frac{p_j^{(1)}-p_j^{(0)}}{\|p_j^{(1)}-p_j^{(0)}\|},
+\qquad
+\vec F_j=e_jF_j^{\max}u_j.
+$$
 
-Tested with Python 3.13.
+Its torque on a segment is
+
+$$
+C_j=(p_j-G_i)\times\vec F_j.
+$$
+
+## 4. Function to optimise
+
+Following the presentation, $Q:B\to\mathbb R$ rewards shoulder height and penalises horizontal instability:
+
+$$
+Q(e)
+=
+a_1(y_{\mathrm{shoulder}}-0.8)
+-a_2(G_x-0.14)^2
+-a_3\dot G_x^2
+-a_4g
+-a_5\left(\frac{\Delta(a_4g)}{t}\right)^2,
+$$
+
+with the values used by the code
+
+$$
+a_1=\frac{50}{t},\qquad
+a_2=10^7,\qquad
+a_3=10^3,\qquad
+a_4=10^4,\qquad
+a_5=2\times10^{-6}.
+$$
+
+The alignment term implemented in the repository is
+
+$$
+g
+=
+\sqrt{
+(x_{\mathrm{knee}}-x_{\mathrm{hand}})^2
++(x_{\mathrm{knee}}-x_{\mathrm{shoulder}})^2
++(x_{\mathrm{shoulder}}-x_{\mathrm{hand}})^2
+}.
+$$
+
+The terms in $Q$ have different physical units. The coefficients $a_1,\ldots,a_5$ are empirical weights that place the competing objectives on useful numerical scales; $Q$ is a control score, not a physical energy.
+
+The controller is written as a minimisation problem:
+
+$$
+L(e)=-Q(e),
+\qquad
+\min_{e\in B}L(e).
+$$
+
+## 5. Projected gradient descent
+
+For each coordinate $i$, the code estimates $\partial_iL$ with two perturbed simulations. Inside $B$ it uses the centred difference
+
+$$
+\widehat{\partial_iL}(e)
+=
+\frac{L(e+\delta\mathbf e_i)-L(e-\delta\mathbf e_i)}{2\delta},
+\qquad
+\delta=10^{-3}.
+$$
+
+At the boundary of $B$, the infeasible perturbation is replaced by $e_i=0$ or $e_i=1$, giving the corresponding one-sided difference. Every perturbed simulation starts from the same saved mechanical state.
+
+The control update is
+
+$$
+e_{n+1}
+=
+\Pi_B\!\left(e_n-k\gamma^n\widehat{\nabla L}(e_n)\right),
+$$
+
+with
+
+$$
+k=\frac{10^{-3}}{t},
+\qquad
+\gamma=0.7.
+$$
+
+The inner iterations stop when
+
+$$
+\|e_{n+1}-e_n\|_\infty<\varepsilon,
+\qquad
+\varepsilon=10^{-3},
+$$
+
+or fail after 100 iterations. This criterion only states that the projected update has become small; it does not prove convergence to an optimum.
+
+The controller optimises the next simulated state at every time step. It is therefore a local, one-step feedback controller, not a global trajectory optimiser.
+
+## 6. Reference trajectory
+
+![Bar height and horizontal centre-of-mass position](assets/trajectory.png)
+
+For the existing 1,000-step reference run,
+
+$$
+T=1.000\ \mathrm{s},
+\qquad
+y_{\mathrm{bar}}(0)=0.225\ \mathrm{m},
+\qquad
+y_{\mathrm{bar}}(T)=0.513\ \mathrm{m},
+$$
+
+$$
+\max_k|G_x(k)-0.14|=4.6\times10^{-3}\ \mathrm{m}.
+$$
+
+These are numerical outputs of the chosen parameterisation, not empirical measurements or evidence of an optimal lifting technique. The trajectory becomes unstable beyond the documented interval and does not demonstrate a complete lift.
+
+## 7. Run the experiment
 
 ```bash
 python3 -m venv .venv
@@ -79,23 +222,37 @@ python -m pip install -r requirements.txt
 python src/demo.py
 ```
 
-The final command runs the existing bounded, headless reference simulation, prints its recorded metrics and writes `assets/trajectory.png`. The original interactive visualisation is launched with `python src/main.py` and runs until its Pygame window is closed.
+The interactive visualisation is launched with:
 
-## Approximate parameterisation and limits
+```bash
+python src/main.py
+```
 
-The current geometry uses four uniform rods and five line actuators. Segment dimensions, masses, attachment locations and maximum forces are approximate modelling parameters. The nominal 175 kg load is folded into the arm segment's mass and inertia rather than represented as a point mass at the bar.
+## 8. Implementation map
 
-The model also omits three-dimensional motion, joint limits, passive tissues, activation dynamics, fatigue, collision handling and a detailed foot–ground contact model. There is no calibration against motion capture or force-plate data, no time-step convergence study, and no demonstrated energy-conservation result.
-
-## Read the core implementation
-
-| Path | What to inspect |
+| Mathematical component | Implementation |
 | --- | --- |
-| [`src/matrix.py`](src/matrix.py) | Assembly of the coupled dynamics matrix and right-hand side |
-| [`src/update.py`](src/update.py) | Per-step solve and state update |
-| [`src/brain.py`](src/brain.py) | Objective, numerical gradient and projected controller |
-| [`src/state.py`](src/state.py) | Segment, actuator and initial-state parameters |
-| [`src/bone.py`](src/bone.py) | Kinematics and force/torque geometry |
-| [`src/demo.py`](src/demo.py) | Existing bounded reference run |
+| State and parameters | [`src/state.py`](src/state.py) |
+| Kinematics and actuator geometry | [`src/bone.py`](src/bone.py) |
+| $A(\theta_k)$ and $B(\theta_k,\theta_{k-1},e_k)$ | [`src/matrix.py`](src/matrix.py) |
+| Linear solve and state propagation | [`src/update.py`](src/update.py) |
+| $Q$, $L=-Q$, $\widehat{\nabla L}$ and projected descent | [`src/brain.py`](src/brain.py) |
+| Reproducible reference trajectory | [`src/demo.py`](src/demo.py) |
 
-For a quick code review, follow `state.py` → `matrix.py` / `update.py` → `brain.py`.
+For a short review, follow
+
+$$
+\texttt{state.py}
+\longrightarrow
+\texttt{matrix.py}
+\longrightarrow
+\texttt{update.py}
+\longrightarrow
+\texttt{brain.py}.
+$$
+
+## 9. Scope and limitations
+
+The model uses four uniform rods, five idealised actuators, approximate anthropometric parameters and a nominal 175 kg load folded into the terminal segment.
+
+It omits three-dimensional motion, joint limits, activation dynamics, fatigue, collision handling, passive tissues and a detailed foot-ground contact model. It has not been calibrated against motion-capture or force-plate data.
