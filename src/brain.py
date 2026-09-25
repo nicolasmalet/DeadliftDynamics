@@ -28,6 +28,7 @@ def gradient_descent(
     m = len(state.muscles)
     x = v.copy()
     delta = 1e-3
+    directions = np.eye(m)
 
     for n in range(max_iterations):
         nabla = np.zeros(m)
@@ -36,11 +37,11 @@ def gradient_descent(
             upper = min(1.0, x[i] + delta)
 
             lower_state = state.copy()
-            update_model(lower_state, x + (lower - x[i]) * e_i(i, m), shallow_update=True)
+            update_model(lower_state, x + (lower - x[i]) * directions[i], shallow_update=True)
             f_lower = f(lower_state)
 
             upper_state = state.copy()
-            update_model(upper_state, x + (upper - x[i]) * e_i(i, m), shallow_update=True)
+            update_model(upper_state, x + (upper - x[i]) * directions[i], shallow_update=True)
             f_upper = f(upper_state)
 
             nabla[i] = (f_upper - f_lower) / (upper - lower)
@@ -83,9 +84,3 @@ def Q_terms(state: State) -> list[float]:
 
 def g(x: float, y: float, z: float) -> float:
     return ((x - y) ** 2 + (x - z) ** 2 + (y - z) ** 2) ** 0.5
-
-
-def e_i(i: int, j: int) -> np.ndarray:
-    e = np.zeros(j)
-    e[i] = 1
-    return e

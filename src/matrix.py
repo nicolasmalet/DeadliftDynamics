@@ -5,9 +5,7 @@ from config import t
 
 
 def a_ij(i: int, j: int, bones: list[Bone], c: list[float], s: list[float]) -> float:
-    """
-    Computes the coefficient A[i, j] for the system matrix A.
-    """
+    """Computes the coefficient A[i, j] for the system matrix A."""
     n = len(bones)
     qi, qj = i // n, j // n
     ri, rj = i % n, j % n
@@ -54,9 +52,7 @@ def a_ij(i: int, j: int, bones: list[Bone], c: list[float], s: list[float]) -> f
 
 def b_i(i: int, bones: list[Bone], c: list[float], s: list[float], l_forces: list[np.ndarray],
         l_torques: list[float]) -> float:
-    """
-    Computes the coefficient B[i] for the system vector B.
-    """
+    """Computes the coefficient B[i] for the system vector B."""
     n = len(bones)
     q, index = i // n, i % n
     bone = bones[index]

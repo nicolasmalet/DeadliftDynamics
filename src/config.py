@@ -1,6 +1,6 @@
 
 g = 9.81  # gravity constant of Earth at the sea level
-bar_mass = 175  # mass of the deadlift barr
+bar_mass = 175  # mass of the deadlift bar
 
 t = 1e-3  # time for euler's method, the lower the time, the better the approximation
 

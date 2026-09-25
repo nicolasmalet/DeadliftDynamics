@@ -9,9 +9,7 @@ plt.style.use('dark_background')
 
 
 def plot_movement(state: State) -> None:
-    """
-    Plots the angular position, velocity, acceleration, and system energy over time.
-    """
+    """Plots the angular position, velocity, acceleration, and system energy over time."""
     N = len(state.bones[0].l_theta) - 2
 
     fig, axs = plt.subplots(2, 2)
@@ -53,9 +51,7 @@ def plot_movement(state: State) -> None:
 
 
 def plot_energies(state: State) -> None:
-    """
-    Plots detailed energy breakdowns including muscle work and power.
-    """
+    """Plots detailed energy breakdowns including muscle work and power."""
     N = len(state.bones[0].l_theta) - 2
 
     fig, axs = plt.subplots(2, 2)
@@ -101,9 +97,7 @@ def plot_energies(state: State) -> None:
 
 
 def plot_phase_portrait(state: State) -> None:
-    """
-    Plots the phase portrait (angle vs angular velocity) for each bone.
-    """
+    """Plots the phase portrait (angle vs angular velocity) for each bone."""
     N = len(state.bones[0].l_theta) - 2
 
     for bone in state.bones:
@@ -112,9 +106,7 @@ def plot_phase_portrait(state: State) -> None:
 
 
 def plot_efforts(state: State) -> None:
-    """
-    Plots the muscle efforts and the components of the Q cost function.
-    """
+    """Plots the muscle efforts and the components of the Q cost function."""
     fig, axs = plt.subplots(2, 3)
 
     N = len(state.bones[0].l_theta) - 2
@@ -166,9 +158,7 @@ def plot_efforts(state: State) -> None:
 
 
 def plot_Q(state: State) -> None:
-    """
-    Plots the Q cost function and its components over time using a logarithmic scale.
-    """
+    """Plots the Q cost function and its components over time using a logarithmic scale."""
     fig, ax = plt.subplots(1, 1)
 
     N = len(state.bones[0].l_theta) - 2
