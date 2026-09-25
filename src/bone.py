@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Tuple, Optional, Any, Dict
+from typing import Any
 
 import numpy as np
 
@@ -12,17 +12,17 @@ class Bone:
     Represents a bone segment in the biomechanical model.
     """
 
-    def __init__(self, name: str, previous_bone: Optional[Bone], muscles: list[Muscle], length: float,
-                 theta0: float, mass: float, color: Tuple[int, int, int]) -> None:
+    def __init__(self, name: str, previous_bone: Bone | None, muscles: list[Muscle], length: float,
+                 theta0: float, mass: float, color: tuple[int, int, int]) -> None:
         """
         Initializes a Bone instance.
         """
         self.name: str = name
-        self.previous_bone: Optional[Bone] = previous_bone
+        self.previous_bone: Bone | None = previous_bone
         self.index: int = self.get_index()
         self.r: float = length
         self.m: float = mass
-        self.color: Tuple[int, int, int] = color
+        self.color: tuple[int, int, int] = color
         self.J: float = 1 / 12 * mass * length ** 2
         self.muscles: list[Muscle] = muscles
         self.Ep0: float = 0
@@ -44,10 +44,10 @@ class Bone:
 
         self.P: np.ndarray = self.get_P()
 
-        self.F_max_muscles: Dict[str, np.ndarray] = {}
-        self.C_max_muscles: Dict[str, float] = {}
+        self.F_max_muscles: dict[str, np.ndarray] = {}
+        self.C_max_muscles: dict[str, float] = {}
 
-        self.first_state: Optional[list[Any]] = None
+        self.first_state: list[Any] | None = None
 
     def update(self, bones: list[Bone], shallow_update: bool = False) -> None:
         """
@@ -84,7 +84,8 @@ class Bone:
         Sets the state of the bone from a provided list.
         """
         self.F_max_muscles, self.C_max_muscles = {}, {}
-        self.e_r, self.e_theta, self.origin, self.end, self.theta_dot, self.G, self.G_dot, self.P, self.F_max_muscles, self.C_max_muscles = state
+        (self.e_r, self.e_theta, self.origin, self.end, self.theta_dot, self.G, self.G_dot, self.P,
+         self.F_max_muscles, self.C_max_muscles) = state
 
     def get_index(self) -> int:
         """
@@ -108,7 +109,7 @@ class Bone:
         """
         return self.origin + self.r * self.e_r
 
-    def get_e_r_and_e_theta(self) -> Tuple[np.ndarray, np.ndarray]:
+    def get_e_r_and_e_theta(self) -> tuple[np.ndarray, np.ndarray]:
         """
         Calculates the unit vectors e_r and e_theta based on the current angle.
         """
@@ -180,18 +181,18 @@ class Muscle:
     """
 
     def __init__(self, name: str, index: int, relative_start: list[float], relative_end: list[float], max_force: float,
-                 color: Tuple[int, int, int]) -> None:
+                 color: tuple[int, int, int]) -> None:
         """
         Initializes a Muscle instance.
         """
         self.name: str = name
         self.index: int = index
-        self.bone0: Optional[Bone] = None
-        self.bone1: Optional[Bone] = None
+        self.bone0: Bone | None = None
+        self.bone1: Bone | None = None
         self.relative_0: list[float] = relative_start
         self.relative_1: list[float] = relative_end
         self.max_force: float = max_force
-        self.color: Tuple[int, int, int] = color
+        self.color: tuple[int, int, int] = color
 
     def origin(self) -> np.ndarray:
         """

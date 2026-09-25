@@ -1,8 +1,8 @@
 import pygame as pg
 
 from brain import make_decision
-from config import plot_Q_function, plot_e, plot_eff, plot_m, plot_p, review, show_model, t
-from plot import plot_Q, plot_efforts, plot_energies, plot_movement, plot_phase_portrait
+from config import plot_e, plot_eff, plot_m, plot_p, plot_Q_function, review, show_model, t
+from plot import plot_efforts, plot_energies, plot_movement, plot_phase_portrait, plot_Q
 from pygame_interface import create_display, update_display
 from state import create_state
 from update import reset_energy, update_model

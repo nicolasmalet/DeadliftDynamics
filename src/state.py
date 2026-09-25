@@ -23,7 +23,7 @@ class State:
 
     def copy(self) -> "State":
         """Copy the current state without copying complete result histories."""
-        source_bones = [self.ground] + self.bones
+        source_bones = [self.ground, *self.bones]
         bone_map = {id(source): copy(source) for source in source_bones}
         muscle_map = {id(source): copy(source) for source in self.muscles}
 
@@ -84,7 +84,7 @@ def create_state() -> State:
     bones = [tibia, femur, back, arm]
     muscles = [calves, quadriceps, hamstrings, low_back, lats]
 
-    for bone in [ground] + bones:
+    for bone in [ground, *bones]:
         for muscle in muscles:
             if muscle in bone.muscles:
                 if muscle.bone0 is None:

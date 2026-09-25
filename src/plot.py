@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from config import t, background_color
+from config import background_color, t
 from state import State
 from utils import differentiate, integrate
 
@@ -173,7 +173,7 @@ def plot_Q(state: State) -> None:
 
     N = len(state.bones[0].l_theta) - 2
 
-    t_axis = [i * t for i in range(0, N)]
+    t_axis = [i * t for i in range(N)]
 
     name = {0: 'Q', 1: 'shoulder height', 2: 'gravity center pos', 3: 'gravity center speed',
             4: 'g', 5: 'dg/dt'}

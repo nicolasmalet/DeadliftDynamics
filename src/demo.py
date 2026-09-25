@@ -32,7 +32,7 @@ def main() -> None:
         com_x.append(float(state.l_gravity_center[-1][0]))
 
     if not all(np.isfinite(series).all() for series in (bar_y, com_x, state.efforts)) or not np.all(
-        (0 <= state.efforts) & (state.efforts <= 1)
+        (state.efforts >= 0) & (state.efforts <= 1)
     ):
         raise RuntimeError("simulation produced an invalid state")
 

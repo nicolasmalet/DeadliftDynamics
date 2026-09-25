@@ -1,13 +1,25 @@
-from typing import Tuple, List
 
 import numpy as np
 import pygame as pg
-from pygame.gfxdraw import filled_circle, aacircle
+from pygame.gfxdraw import aacircle, filled_circle
 
 from bone import Bone, Muscle
-from config import (background_color, bone_color, focus, ground_color, pixel_per_meter, r_bar, r_head,
-                    ratio_screen_reality, screen_size_x, screen_size_y, show_bar, show_gravity_center,
-                    show_ground, show_time)
+from config import (
+    background_color,
+    bone_color,
+    focus,
+    ground_color,
+    pixel_per_meter,
+    r_bar,
+    r_head,
+    ratio_screen_reality,
+    screen_size_x,
+    screen_size_y,
+    show_bar,
+    show_gravity_center,
+    show_ground,
+    show_time,
+)
 from state import State
 
 
@@ -18,7 +30,7 @@ def create_display() -> tuple[pg.Surface, pg.font.Font]:
     return screen, pg.font.SysFont('Calibri', 50)
 
 
-def pos_to_screen(pos: np.ndarray) -> Tuple[int, int]:
+def pos_to_screen(pos: np.ndarray) -> tuple[int, int]:
     """
     Converts simulation coordinates to screen coordinates.
     """
@@ -26,7 +38,7 @@ def pos_to_screen(pos: np.ndarray) -> Tuple[int, int]:
             int(-(pos[1] - focus[1]) * pixel_per_meter * ratio_screen_reality) + screen_size_y // 2)
 
 
-def draw_line(screen: pg.Surface, p1: np.ndarray, p2: np.ndarray, color: Tuple[int, int, int]) -> None:
+def draw_line(screen: pg.Surface, p1: np.ndarray, p2: np.ndarray, color: tuple[int, int, int]) -> None:
     """
     Draws an anti-aliased line on the screen.
     """
@@ -47,20 +59,13 @@ def draw_muscle(screen: pg.Surface, muscle: Muscle, effort: float) -> None:
     draw_line(screen, muscle.origin(), muscle.end(), color_gradient(effort))
 
 
-def draw_head(screen: pg.Surface, bones: List[Bone]) -> None:
+def draw_head(screen: pg.Surface, bones: list[Bone]) -> None:
     """
     Draws the head of the character.
     """
     x, y = pos_to_screen(bones[2].end + r_head * bones[2].e_r)
     r = int(r_head * pixel_per_meter * ratio_screen_reality)
     aacircle(screen, x, y, r, bone_color)
-
-
-def draw_vector(screen: pg.Surface, start: np.ndarray, v: np.ndarray, color: Tuple[int, int, int]) -> None:
-    """
-    Draws a vector arrow.
-    """
-    pg.draw.aaline(screen, color, pos_to_screen(start), pos_to_screen(start + v))
 
 
 def draw_ground(screen: pg.Surface) -> None:
@@ -87,7 +92,7 @@ def draw_time(screen: pg.Surface, font: pg.font.Font, time: float) -> None:
     screen.blit(text_surface, (40, screen_size_y - 54))
 
 
-def draw_bar(screen: pg.Surface, bones: List[Bone]) -> None:
+def draw_bar(screen: pg.Surface, bones: list[Bone]) -> None:
     """
     Draws the barbell.
     """
@@ -97,7 +102,7 @@ def draw_bar(screen: pg.Surface, bones: List[Bone]) -> None:
     aacircle(screen, x, y, r, bone_color)
 
 
-def color_gradient(x: float) -> Tuple[int, int, int]:
+def color_gradient(x: float) -> tuple[int, int, int]:
     """
     Returns a color tuple shading from white to red based on intensity x (0 to 1).
     """
@@ -132,7 +137,4 @@ def update_display(state: State, time: float, screen: pg.Surface, font: pg.font.
 
     pg.display.update()
 
-    for event in pg.event.get():
-        if event.type == pg.QUIT:
-            return False
-    return True
+    return all(event.type != pg.QUIT for event in pg.event.get())

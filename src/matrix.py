@@ -37,9 +37,8 @@ def a_ij(i: int, j: int, bones: list[Bone], c: list[float], s: list[float]) -> f
                 return 1
 
     if qi == 2:
-        if qj == 0:
-            if ri == rj:
-                return bones[ri].J / t ** 2
+        if qj == 0 and ri == rj:
+            return bones[ri].J / t ** 2
         if qj == 1:
             if rj == ri:
                 return bones[ri].r * c[ri] / 2
@@ -53,7 +52,8 @@ def a_ij(i: int, j: int, bones: list[Bone], c: list[float], s: list[float]) -> f
     return 0
 
 
-def b_i(i: int, bones: list[Bone], c: list[float], s: list[float], l_forces: list[np.ndarray], l_torques: list[float]) -> float:
+def b_i(i: int, bones: list[Bone], c: list[float], s: list[float], l_forces: list[np.ndarray],
+        l_torques: list[float]) -> float:
     """
     Computes the coefficient B[i] for the system vector B.
     """
@@ -74,9 +74,9 @@ def b_i(i: int, bones: list[Bone], c: list[float], s: list[float], l_forces: lis
         return (l_forces[index][0] + m * r / 2 / t ** 2 * (c[index] * (2 * th - _th) + s[index] * (t * th_dot) ** 2) +
                 m / t ** 2 * sum(bones[p].r * (c[p] * (2 * bones[p].theta - bones[p].l_theta[-2]) +
                                                s[p] * (bones[p].theta - bones[p].l_theta[-2]) ** 2)
-                                 for p in range(0, index)))
+                                 for p in range(index)))
 
     return (l_forces[index][1] + m * r / 2 / t ** 2 * (s[index] * (2 * th - _th) - c[index] * (t * th_dot) ** 2) +
             m / t ** 2 * sum(bones[p].r * (s[p] * (2 * bones[p].theta - bones[p].l_theta[-2]) -
                                            c[p] * (bones[p].theta - bones[p].l_theta[-2]) ** 2)
-                             for p in range(0, index)))
+                             for p in range(index)))
