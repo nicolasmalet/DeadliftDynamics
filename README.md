@@ -1,5 +1,7 @@
 # DeadliftDynamics
 
+[![CI](https://github.com/nicolasmalet/DeadliftDynamics/actions/workflows/ci.yml/badge.svg)](https://github.com/nicolasmalet/DeadliftDynamics/actions/workflows/ci.yml)
+
 **Constrained feedback control of a nonlinear articulated system, implemented from first principles.**
 
 <p align="center">
