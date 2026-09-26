@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -19,22 +19,12 @@ class State:
     theta: np.ndarray
 
 
-@dataclass
-class History:
-    states: list[State] = field(default_factory=list)
-    efforts: list[np.ndarray] = field(default_factory=list)
-    q_terms: list[list[float]] = field(default_factory=list)
-    kinetic_energy: list[float] = field(default_factory=list)
-    potential_energy: list[float] = field(default_factory=list)
-    muscle_power: list[np.ndarray] = field(default_factory=list)
-
-
 def gravity_center(model: Model, centers: np.ndarray) -> np.ndarray:
     masses = np.array([bone.m for bone in model.bones])
     return masses @ centers / masses.sum()
 
 
-def create_state() -> tuple[Model, State, History]:
+def create_state() -> tuple[Model, State, np.ndarray]:
     bones = (
         Bone("tibia", 0.49, 6, bone_color),
         Bone("femur", 0.40, 14, bone_color),
@@ -53,4 +43,4 @@ def create_state() -> tuple[Model, State, History]:
     model = Model(bones, muscles, current.centers.copy())
     state = State(theta.copy(), theta)
     efforts = np.array([0.36, 0.68, 1.0, 1.0, 0.0])
-    return model, state, History(states=[state], efforts=[efforts])
+    return model, state, efforts

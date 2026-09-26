@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from config import background_color, t
-from state import History, Model
+from history import History
+from state import Model
 from utils import differentiate, integrate
 
 plt.style.use("dark_background")

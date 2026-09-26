@@ -12,7 +12,6 @@ plot_e = True  # plot energies
 plot_p = False  # plot phase portrait
 plot_eff = True  # plot efforts
 plot_Q_function = False  # plot the Q function
-show_model = True  # show the system
 show_ground = True  # draw the ground
 show_bar = True  # draw the deadlift bar
 show_time = True  # show the timer

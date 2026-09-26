@@ -8,7 +8,7 @@ def differentiate(f: list[float]) -> list[float]:
 
 def integrate(f: list[float]) -> list[float]:
     """Computes the discrete integral of a list of values over time t using the Euler method."""
-    F = [0.0]
+    integral: list[float] = [0.0]
     for i in range(len(f)):
-        F.append(F[-1] + t * f[i])
-    return F
+        integral.append(integral[-1] + t * f[i])
+    return integral

@@ -65,24 +65,24 @@ def b_i(
     q, index = i // n, i % n
     bone = bones[index]
     th = theta[index]
-    _th = theta_previous[index]
+    previous_th = theta_previous[index]
 
     if q == 2:
-        return bone.J / t**2 * (2 * th - _th) + torques[index]
+        return bone.J / t**2 * (2 * th - previous_th) + torques[index]
 
     m = bone.m
     r = bone.r
-    th_dot = (th - _th) / t
+    th_dot = (th - previous_th) / t
 
     if q == 0:
         return (
             forces[index][0]
-            + m * r / 2 / t**2 * (c[index] * (2 * th - _th) + s[index] * (t * th_dot) ** 2)
+            + m * r / 2 / t**2 * (c[index] * (2 * th - previous_th) + s[index] * (t * th_dot) ** 2)
             + m / t**2 * sum(bones[p].r * (c[p] * (2 * theta[p] - theta_previous[p]) + s[p] * (theta[p] - theta_previous[p]) ** 2) for p in range(index))
         )
 
     return (
         forces[index][1]
-        + m * r / 2 / t**2 * (s[index] * (2 * th - _th) - c[index] * (t * th_dot) ** 2)
+        + m * r / 2 / t**2 * (s[index] * (2 * th - previous_th) - c[index] * (t * th_dot) ** 2)
         + m / t**2 * sum(bones[p].r * (s[p] * (2 * theta[p] - theta_previous[p]) - c[p] * (theta[p] - theta_previous[p]) ** 2) for p in range(index))
     )
